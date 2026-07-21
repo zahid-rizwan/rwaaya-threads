@@ -110,10 +110,10 @@ export default function Home() {
   ];
 
   const circularCategories = [
+    { id: 'suits', name: 'Pakistani Suits', image: '/assets/e7088a2366cb90adc3302932505be2bc610e9afe.png' },
     { id: 'coords', name: 'Co-Ord Sets', image: '/assets/8cd274c8adf8a9367c11b2f398e872089e3379a0.png' },
     { id: 'party', name: 'Party Wear', image: '/assets/13960744be005aa72595ea1e43c13afca8050ca4.png' },
-    { id: 'hampers', name: 'Gift Hampers', image: '/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png' },
-    { id: 'suits', name: 'Pakistani Suits', image: '/assets/e7088a2366cb90adc3302932505be2bc610e9afe.png' }
+    { id: 'hampers', name: 'Gift Hampers', image: '/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png' }
   ];
 
   const categories = [
@@ -124,19 +124,19 @@ export default function Home() {
     { id: 'hampers', name: 'Gift Hampers', emoji: '🎁' }
   ];
 
-  const statsList = [
-    { num: "1", title: "Curated collection" },
-    { num: "2", title: "Artisan craft" },
-    { num: "3", title: "Fast Shipping" },
-    { num: "4", title: "Secure Payment" },
-    { num: "5", title: "Easy Returns" },
-    { num: "6", title: "24/7 Support" }
+  const promiseList = [
+    { title: "Premium Craftsmanship", desc: "Every piece crafted by master artisans" },
+    { title: "Handpicked Designs", desc: "Curated with luxury in mind" },
+    { title: "Easy Returns", desc: "Hassle-free 14-day returns" },
+    { title: "Secure Payments", desc: "100% safe & encrypted checkout" },
+    { title: "Fast Delivery", desc: "Delivered to your doorstep" },
+    { title: "Trusted by Thousands", desc: "5,000+ happy customers" }
   ];
 
-  const fabricCollections = [
-    { name: "Chiffon", image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png", title: "Dusk Chiffon Co-ord", tag: "suits" },
-    { name: "Lawn", image: "/assets/f5033b1a4ddb926f41bc87a1c3a2f99082eaa624.png", title: "Amber Heritage Lawn", tag: "coords" },
-    { name: "Silk", image: "/assets/f1518341f4e01d47c3cac265752092154acdaa3b.png", title: "Sapphire Silk Suit", tag: "suits" }
+  const exploreCollections = [
+    { title: "Co-Ord Sets", subtitle: "EXPLORE COLLECTION", image: "/assets/8cd274c8adf8a9367c11b2f398e872089e3379a0.png", tag: "coords" },
+    { title: "Bridal Collection", subtitle: "EXPLORE COLLECTION", image: "/assets/13960744be005aa72595ea1e43c13afca8050ca4.png", tag: "party" },
+    { title: "Gift Hampers", subtitle: "EXPLORE COLLECTION", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", tag: "hampers" }
   ];
 
   const addToBag = (productId: number) => {
@@ -195,33 +195,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. Header & Sticky Navigation */}
+      {/* 2. Top Header Navigation */}
       <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
-        <div className={styles.navLeft}>
-          <button 
-            className={styles.menuButton} 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span className={styles.menuBar} style={{ transform: mobileMenuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none' }}></span>
-            <span className={styles.menuBar} style={{ opacity: mobileMenuOpen ? 0 : 1 }}></span>
-            <span className={styles.menuBar} style={{ transform: mobileMenuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none' }}></span>
-          </button>
-          <ul className={styles.navLinks}>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Collections</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/all'); }}>New Season</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); document.getElementById('heritage-section')?.scrollIntoView({ behavior: 'smooth' }); }}>Our Story</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/party'); }}>Bridal Edit</a></li>
-          </ul>
-        </div>
-
         <div className={styles.logoContainer}>
           <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
             <Image 
-              src="/assets/2d443a0997545c3de1e9383c78565921faa8a0a8.png" 
-              alt="Riwaaya Logo" 
-              width={110} 
-              height={40} 
+              src="/assets/logo.svg" 
+              alt="Riwaaya Threads Logo" 
+              width={180} 
+              height={25} 
               className={styles.logoImage}
               priority
             />
@@ -230,40 +212,9 @@ export default function Home() {
 
         <div className={styles.navRight}>
           <button className={styles.iconButton} aria-label="Search">
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </button>
-          
-          <button className={styles.iconButton} style={{ position: 'relative' }} aria-label="Wishlist">
-            <svg width="18" height="18" fill={wishlist.length > 0 ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-            {wishlist.length > 0 && (
-              <span className={styles.badgeIndicator}>
-                {wishlist.length}
-              </span>
-            )}
-          </button>
-
-          <button className={styles.iconButton} style={{ position: 'relative' }} aria-label="Shopping Bag">
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
-            </svg>
-            {cartCount > 0 && (
-              <span className={styles.badgeIndicator} style={{ backgroundColor: 'var(--primary)', color: 'var(--white)' }}>
-                {cartCount}
-              </span>
-            )}
-          </button>
-
-          <button className={styles.iconButton} aria-label="Profile" onClick={() => router.push('/login')}>
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </button>
         </div>
@@ -291,20 +242,29 @@ export default function Home() {
         </div>
       )}
 
-      {/* Circular Category Buttons Carousel */}
+      {/* Category Cards Carousel */}
       <div className={styles.circleCarousel}>
-        {circularCategories.map((cat) => (
-          <div 
-            key={cat.id} 
-            className={`${styles.circleItem} ${activeCategory === cat.id ? styles.circleActive : ''}`}
-            onClick={() => router.push(`/collections/${cat.id}`)}
-          >
-            <div className={styles.circleImageWrapper}>
-              <Image src={cat.image} alt={cat.name} fill style={{ objectFit: 'cover' }} />
-            </div>
-            <span className={styles.circleLabel}>{cat.name}</span>
-          </div>
-        ))}
+        {circularCategories.map((cat) => {
+          const isActive = activeCategory === cat.id;
+          return (
+            <button 
+              type="button"
+              key={cat.id} 
+              className={`${styles.circleItem} ${isActive ? styles.circleActive : ''}`}
+              onClick={() => setActiveCategory(cat.id)}
+              aria-label={`Select ${cat.name}`}
+            >
+              <div className={styles.circleImageWrapper}>
+                <Image src={cat.image} alt={cat.name} fill style={{ objectFit: 'cover' }} />
+                <div className={styles.cardOverlay} />
+                <div className={styles.cardContent}>
+                  {isActive && <span className={styles.cardViewingText}>Viewing</span>}
+                  <span className={styles.circleLabel}>{cat.name}</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Collection Hero Banner */}
@@ -355,18 +315,13 @@ export default function Home() {
         </span>
       </div>
 
-      {/* Category Filter Tabs Bar */}
-      <div className={styles.categoryFilterBar} style={{ padding: '20px 40px 10px' }}>
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            className={`${styles.quickShopBtn} ${activeCategory === cat.id ? styles.quickShopBtnActive : ''}`}
-            onClick={() => router.push(`/collections/${cat.id}`)}
-          >
-            <span>{cat.emoji}</span>
-            <span>{cat.name}</span>
-          </button>
-        ))}
+
+
+      {/* Category Description */}
+      <div className={styles.categoryDescContainer}>
+        <p className={styles.categoryDescText}>
+          Our Pakistani Suit Collection celebrates timeless craftsmanship with luxurious fabrics, intricate embroidery, and graceful silhouettes designed for modern elegance. Each piece is a testament to South Asia's most cherished textile traditions.
+        </p>
       </div>
 
       {/* Products Grid Section */}
@@ -410,34 +365,49 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Gold Bridal season banner */}
-      <section id="bridal-section" className={styles.bridalBanner}>
-        <div className={styles.bridalSubtitle}>Bridal Season 2025</div>
-        <h2 className={styles.bridalTitle}>The Bridal Edit is Here</h2>
-        <p className={styles.bridalDescription}>For the bride who wears her heritage with pride</p>
-        <button className={styles.btnGold} onClick={() => router.push('/collections/suits')}>
-          Discover Bridal
-          <Image src="/assets/bc9e1c3cb615ac0db4491f7d6ecf0e31942274f9.svg" alt="" width={12} height={12} />
-        </button>
+      {/* Exclusive New Festive Collection Banner */}
+      <section id="bridal-section" className={styles.festiveBannerContainer}>
+        <div className={styles.festiveCard}>
+          <p className={styles.festiveSubtitle}>EXCLUSIVE</p>
+          <h2 className={styles.festiveTitle}>
+            <span className={styles.festiveSparkle}>✨</span>
+            New Festive Collection
+          </h2>
+          <p className={styles.festiveDescription}>
+            Limited edition embroidered pieces — crafted for the discerning few.
+          </p>
+          <button className={styles.festiveBtnGold} onClick={() => router.push('/collections/party')}>
+            SHOP NOW ➔
+          </button>
+        </div>
       </section>
 
-      {/* 6 Stats grid */}
-      <section className={styles.section} style={{ paddingBottom: '0px', paddingTop: '40px' }}>
-        <div className={styles.sectionHeader} style={{ marginBottom: 30 }}>
-          <h2 className={styles.sectionTitle} style={{ fontSize: '1.8rem', fontFamily: 'var(--font-serif)' }}>Why RIWAAYA THREADS</h2>
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px' }}>
-            <svg width="40" height="8" viewBox="0 0 100 10" fill="none">
-              <line x1="0" y1="5" x2="35" y2="5" stroke="var(--accent)" strokeWidth="0.8" />
-              <polygon points="50,1 54,5 50,9 46,5" fill="var(--accent)" />
-              <line x1="65" y1="5" x2="100" y2="5" stroke="var(--accent)" strokeWidth="0.8" />
+      {/* OUR PROMISE / Why RIWAAYA THREADS Section */}
+      <section className={styles.promiseSection}>
+        <div className={styles.promiseHeader}>
+          <p className={styles.promiseSubtitle}>OUR PROMISE</p>
+          <h2 className={styles.promiseTitle}>Why RIWAAYA THREADS</h2>
+          <div className={styles.promiseDivider}>
+            <svg width="180" height="16" viewBox="0 0 180 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="0" y1="8" x2="72" y2="8" stroke="#B8963E" strokeWidth="0.8" opacity="0.6" />
+              <path d="M84 8C82 4 77 5 77 8C77 11 82 12 84 8Z" fill="#B8963E" />
+              <path d="M96 8C98 4 103 5 103 8C103 11 98 12 96 8Z" fill="#B8963E" />
+              <circle cx="90" cy="8" r="2" fill="#B8963E" />
+              <line x1="108" y1="8" x2="180" y2="8" stroke="#B8963E" strokeWidth="0.8" opacity="0.6" />
             </svg>
           </div>
         </div>
-        <div className={styles.statsGrid6}>
-          {statsList.map((stat, idx) => (
-            <div key={idx} className={styles.statItem6}>
-              <div className={styles.statNumBox6}>{stat.num}</div>
-              <span className={styles.statLabel6}>{stat.title}</span>
+
+        <div className={styles.promiseGrid}>
+          {promiseList.map((item, idx) => (
+            <div key={idx} className={styles.promiseItem}>
+              <div className={styles.promiseIconBox}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#B8963E">
+                  <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
+                </svg>
+              </div>
+              <h3 className={styles.promiseItemTitle}>{item.title}</h3>
+              <p className={styles.promiseItemDesc}>{item.desc}</p>
             </div>
           ))}
         </div>
@@ -479,31 +449,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Explore fabrics (Chiffon, Lawn, Silk cards) */}
-      <section id="heritage-section" className={styles.section} style={{ backgroundColor: 'var(--card-bg)' }}>
-        <div className={styles.sectionHeader}>
-          <p className={styles.sectionSubtitle}>Explore Our Fabrics</p>
-          <h2 className={styles.sectionTitle}>Curated For Your Life</h2>
-          <Image 
-            src="/assets/5a652244c6f78d4f361e631332767b532cf2e3ff.svg" 
-            alt="Leaf divider" 
-            width={120} 
-            height={20}
-            className={styles.leafDivider}
-          />
+      {/* Explore More / You May Also Like Section */}
+      <section id="heritage-section" className={styles.section} style={{ backgroundColor: 'var(--background)' }}>
+        <div className={styles.exploreHeader}>
+          <p className={styles.exploreSubtitle}>EXPLORE MORE</p>
+          <h2 className={styles.exploreTitle}>You May Also Like</h2>
         </div>
         
         <div className={styles.collectionsGrid}>
-          {fabricCollections.map((fab, idx) => (
-            <div key={idx} className={styles.collectionCard} onClick={() => router.push(`/collections/${fab.tag}`)}>
-              <Image src={fab.image} alt={fab.name} fill className={styles.collectionCardImage} />
+          {exploreCollections.map((col, idx) => (
+            <div key={idx} className={styles.collectionCard} onClick={() => router.push(`/collections/${col.tag}`)}>
+              <Image src={col.image} alt={col.title} fill className={styles.collectionCardImage} />
               <div className={styles.collectionCardOverlay}>
-                <p className={styles.collectionCardBadge}>{fab.name} Collection</p>
-                <h3 className={styles.collectionCardTitle}>{fab.title}</h3>
-                <span className={styles.collectionCardLink}>
-                  Explore
-                  <Image src="/assets/0f2738febdd49311ded35b2152e28e8a2de51f30.svg" alt="" width={12} height={12} className={styles.collectionCardLinkSvg} />
-                </span>
+                <div className={styles.collectionCardContentLeft}>
+                  <p className={styles.collectionCardBadge}>{col.subtitle}</p>
+                  <h3 className={styles.collectionCardTitle}>{col.title}</h3>
+                </div>
+                <div className={styles.collectionCardArrow}>➔</div>
               </div>
             </div>
           ))}
@@ -564,10 +526,10 @@ export default function Home() {
           
           <div className={styles.footerBrandColumn}>
             <Image 
-              src="/assets/2d443a0997545c3de1e9383c78565921faa8a0a8.png" 
-              alt="Riwaaya Logo" 
-              width={110} 
-              height={40} 
+              src="/assets/logo.svg" 
+              alt="Riwaaya Threads Logo" 
+              width={160} 
+              height={22} 
               className={styles.footerLogo}
               style={{ filter: 'brightness(0) invert(1)' }} 
             />
@@ -637,58 +599,80 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar */}
+      {/* Bottom Navigation Bar (Matching Image 2) */}
       <nav className={styles.bottomNav}>
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }} className={styles.bottomNavItem}>
+        <button 
+          type="button"
+          onClick={() => router.push('/')} 
+          className={`${styles.bottomNavItem} ${styles.bottomNavItemActive}`}
+        >
+          <div className={styles.bottomNavActiveLine} />
           <div className={styles.bottomNavIcon}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path d="M3 9.5L12 3l9 6.5V20a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 13 20v-5h-2v5A1.5 1.5 0 0 1 9.5 21.5h-5A1.5 1.5 0 0 1 3 20V9.5z"></path>
             </svg>
           </div>
-          <span>Shop</span>
-        </a>
+          <span>HOME</span>
+        </button>
         
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }} className={styles.bottomNavItem}>
+        <button 
+          type="button"
+          onClick={() => router.push('/collections/suits')} 
+          className={styles.bottomNavItem}
+        >
           <div className={styles.bottomNavIcon}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path d="M3 9l1-5h16l1 5"></path>
+              <path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"></path>
+              <path d="M9 21V12h6v9"></path>
             </svg>
           </div>
-          <span>Collections</span>
-        </a>
+          <span>SHOP</span>
+        </button>
 
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }} className={styles.bottomNavItem}>
+        <button 
+          type="button"
+          onClick={() => router.push('/collections/all')} 
+          className={styles.bottomNavItem}
+        >
           <div className={styles.bottomNavIcon}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
+            {wishlist.length > 0 && <span className={styles.bottomNavBadge}>{wishlist.length}</span>}
           </div>
-          <span>Bridal</span>
-        </a>
+          <span>WISHLIST</span>
+        </button>
 
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }} className={styles.bottomNavItem}>
+        <button 
+          type="button"
+          onClick={() => router.push('/collections/suits')} 
+          className={styles.bottomNavItem}
+        >
           <div className={styles.bottomNavIcon}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
             </svg>
+            {cartCount > 0 && <span className={styles.bottomNavBadge}>{cartCount}</span>}
           </div>
-          <span>Story</span>
-        </a>
+          <span>CART</span>
+        </button>
 
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/login'); }} className={styles.bottomNavItem}>
+        <button 
+          type="button"
+          onClick={() => router.push('/login')} 
+          className={styles.bottomNavItem}
+        >
           <div className={styles.bottomNavIcon}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
-          <span>Profile</span>
-        </a>
+          <span>PROFILE</span>
+        </button>
       </nav>
     </div>
   );
