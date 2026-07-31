@@ -5,15 +5,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import styles from '@/app/page.module.css';
 
-interface Product {
-  id: number;
-  name: string;
-  category: string;
-  price: string;
-  image: string;
-  badge?: string;
-  tag: string;
-}
+import { getProductById, getProducts, Product } from '@/lib/api';
 
 interface Testimonial {
   text: string;
@@ -25,20 +17,36 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   
-  const productId = parseInt(params.id as string) || 9; // Default to Velvet Evening Suit (9) if none
+  const rawId = (params.id as string) || '1';
   
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>('Ivory');
   const [selectedSize, setSelectedSize] = useState<string>('M');
   const [productQuantity, setProductQuantity] = useState<number>(1);
   const [activeDetailTab, setActiveDetailTab] = useState<'details' | 'materials' | 'shipping'>('details');
 
-  const [activeTestimonial, setActiveTestimonial] = useState<number>(0);
   const [cartCount, setCartCount] = useState<number>(0);
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [activeTestimonial, setActiveTestimonial] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
+
+  useEffect(() => {
+    getProductById(rawId).then(data => {
+      if (data) setProduct(data);
+    });
+    getProducts().then(list => setRelatedProducts(list.slice(0, 4)));
+  }, [rawId]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTestimonial((prev) => (prev + 1) % 3);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,12 +60,7 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, []);
+
 
   const products: Product[] = [
     { id: 1, name: "Gulzar Ivory Suit", category: "Pakistani Suit", price: "PKR 18,500", image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png", badge: "New", tag: "suits" },
@@ -97,9 +100,7 @@ export default function ProductDetailPage() {
     { title: "Gift Hampers", subtitle: "EXPLORE COLLECTION", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", tag: "hampers" }
   ];
 
-  const selectedProduct = products.find(p => p.id === productId) || products[8];
-
-  const addToBag = (productId: number) => {
+  const addToBag = (productId: string | number) => {
     setCartCount(prev => prev + 1);
     const alertBox = document.createElement('div');
     alertBox.style.position = 'fixed';
@@ -121,11 +122,12 @@ export default function ProductDetailPage() {
     setTimeout(() => alertBox.remove(), 2500);
   };
 
-  const toggleWishlist = (productId: number) => {
-    if (wishlist.includes(productId)) {
-      setWishlist(prev => prev.filter(id => id !== productId));
+  const toggleWishlist = (productId: string | number) => {
+    const idStr = String(productId);
+    if (wishlist.includes(idStr)) {
+      setWishlist(prev => prev.filter(id => id !== idStr));
     } else {
-      setWishlist(prev => [...prev, productId]);
+      setWishlist(prev => [...prev, idStr]);
     }
   };
 
@@ -138,10 +140,16 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Filter 4 related products for "You May Also Like"
-  const relatedProducts = products
-    .filter(p => p.id !== selectedProduct.id && (p.tag === selectedProduct.tag || p.badge === 'Limited'))
-    .slice(0, 4);
+  const selectedProduct = product || {
+    id: 1,
+    name: "Gulzar Ivory Suit",
+    category: "Pakistani Suit",
+    price: "PKR 18,500",
+    image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png",
+    badge: "New",
+    tag: "suits",
+    description: "Intricately embroidered ivory lawn suit with pure silk dupatta."
+  };
 
   return (
     <div className={styles.pageContainer}>

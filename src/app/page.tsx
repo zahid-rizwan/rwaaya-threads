@@ -3,17 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { getProducts, Product } from '@/lib/api';
 import styles from './page.module.css';
-
-interface Product {
-  id: number;
-  name: string;
-  category: string;
-  price: string;
-  image: string;
-  badge?: string;
-  tag: string;
-}
 
 interface Testimonial {
   text: string;
@@ -57,14 +48,20 @@ const categoryBanners: Record<string, { title: string; subtitle: string; descrip
 export default function Home() {
   const router = useRouter();
 
-  const [activeCategory, setActiveCategory] = useState<string>('suits'); // Defaults to suits matching figma homepage view
+  const [productsList, setProductsList] = useState<Product[]>([]);
   const [activeTestimonial, setActiveTestimonial] = useState<number>(0);
   const [cartCount, setCartCount] = useState<number>(0);
-  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlist, setWishlist] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
+
+  useEffect(() => {
+    getProducts().then((data) => {
+      setProductsList(data);
+    });
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -139,7 +136,59 @@ export default function Home() {
     { title: "Gift Hampers", subtitle: "EXPLORE COLLECTION", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", tag: "hampers" }
   ];
 
-  const addToBag = (productId: number) => {
+  const heroSlides = [
+    {
+      tag: "suits",
+      title: "Pakistani Suits",
+      subtitle: "Discover timeless silhouettes",
+      description: "Discover timeless silhouettes crafted with elegance, tradition, and contemporary luxury.",
+      image: "/assets/e7088a2366cb90adc3302932505be2bc610e9afe.png"
+    },
+    {
+      tag: "coords",
+      title: "Co-Ord Sets",
+      subtitle: "Curated Pairings",
+      description: "Effortlessly curated pairings for the modern South Asian woman.",
+      image: "/assets/8cd274c8adf8a9367c11b2f398e872089e3379a0.png"
+    },
+    {
+      tag: "party",
+      title: "Party Wear",
+      subtitle: "Heritage & Festive",
+      description: "Evening glamour for every occasion — from intimate dinners to grand celebrations.",
+      image: "/assets/13960744be005aa72595ea1e43c13afca8050ca4.png"
+    },
+    {
+      tag: "hampers",
+      title: "Gift Hampers",
+      subtitle: "Exclusive Gifting",
+      description: "Luxuriously curated gifts for the most cherished and memorable moments.",
+      image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png"
+    }
+  ];
+
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
+
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 5000);
+    return () => clearInterval(slideTimer);
+  }, [heroSlides.length]);
+
+  const nextHeroSlide = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentSlideIndex((prev) => (prev + 1) % heroSlides.length);
+  };
+
+  const prevHeroSlide = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentSlideIndex((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+  };
+
+  const currentHeroSlide = heroSlides[currentSlideIndex];
+
+  const addToBag = (productId: string | number) => {
     setCartCount(prev => prev + 1);
     const alertBox = document.createElement('div');
     alertBox.style.position = 'fixed';
@@ -161,11 +210,12 @@ export default function Home() {
     setTimeout(() => alertBox.remove(), 2500);
   };
 
-  const toggleWishlist = (productId: number) => {
-    if (wishlist.includes(productId)) {
-      setWishlist(prev => prev.filter(id => id !== productId));
+  const toggleWishlist = (productId: string | number) => {
+    const idStr = String(productId);
+    if (wishlist.includes(idStr)) {
+      setWishlist(prev => prev.filter(id => id !== idStr));
     } else {
-      setWishlist(prev => [...prev, productId]);
+      setWishlist(prev => [...prev, idStr]);
     }
   };
 
@@ -177,13 +227,6 @@ export default function Home() {
       setTimeout(() => setSubscribed(false), 5000);
     }
   };
-
-  // Filter products by selected tag
-  const filteredProducts = activeCategory === 'all' 
-    ? products 
-    : products.filter(p => p.tag === activeCategory);
-
-  const banner = categoryBanners[activeCategory] || categoryBanners['suits'];
 
   return (
     <div className={styles.pageContainer}>
@@ -242,23 +285,22 @@ export default function Home() {
         </div>
       )}
 
-      {/* Category Cards Carousel */}
+      {/* Category Cards Carousel (Commented out for now) */}
+      {/* 
       <div className={styles.circleCarousel}>
         {circularCategories.map((cat) => {
-          const isActive = activeCategory === cat.id;
           return (
             <button 
               type="button"
               key={cat.id} 
-              className={`${styles.circleItem} ${isActive ? styles.circleActive : ''}`}
-              onClick={() => setActiveCategory(cat.id)}
+              className={styles.circleItem}
+              onClick={() => router.push(`/collections/${cat.id}`)}
               aria-label={`Select ${cat.name}`}
             >
               <div className={styles.circleImageWrapper}>
                 <Image src={cat.image} alt={cat.name} fill style={{ objectFit: 'cover' }} />
                 <div className={styles.cardOverlay} />
                 <div className={styles.cardContent}>
-                  {isActive && <span className={styles.cardViewingText}>Viewing</span>}
                   <span className={styles.circleLabel}>{cat.name}</span>
                 </div>
               </div>
@@ -266,27 +308,33 @@ export default function Home() {
           );
         })}
       </div>
+      */}
 
-      {/* Collection Hero Banner */}
-      <section id="collection-banner" className={styles.categoryHero}>
+      {/* Collection Hero Banner Carousel */}
+      <section 
+        id="collection-banner" 
+        className={styles.categoryHero}
+        onClick={() => router.push(`/collections/${currentHeroSlide.tag}`)}
+        style={{ cursor: 'pointer' }}
+      >
         <div className={styles.categoryHeroContent}>
           <div className={styles.categoryHeroBadge}>
             COLLECTION EDIT
           </div>
           <h1 className={styles.categoryHeroHeading}>
-            {banner.subtitle}
+            {currentHeroSlide.subtitle}
             <span className={styles.categoryHeroHeadingItalic}>
-              {banner.title}
+              {currentHeroSlide.title}
             </span>
           </h1>
           <p className={styles.categoryHeroDescription}>
-            {banner.description}
+            {currentHeroSlide.description}
           </p>
           <button 
             className={styles.btnPrimary} 
-            onClick={() => {
-              const grid = document.getElementById('products-section');
-              grid?.scrollIntoView({ behavior: 'smooth' });
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/collections/${currentHeroSlide.tag}`);
             }}
           >
             EXPLORE COLLECTION ➔
@@ -294,40 +342,67 @@ export default function Home() {
         </div>
         <div className={styles.categoryHeroImageContainer}>
           <Image 
-            src={banner.image} 
-            alt={banner.title}
+            src={currentHeroSlide.image} 
+            alt={currentHeroSlide.title}
             fill
             className={styles.categoryHeroImage}
             priority
           />
           <div className={styles.categoryHeroImageOverlay}></div>
         </div>
+
+        {/* Carousel Indicators & Controls */}
+        <div className={styles.heroCarouselControls} onClick={(e) => e.stopPropagation()}>
+          <button 
+            type="button" 
+            className={styles.heroArrowBtn} 
+            onClick={prevHeroSlide}
+            aria-label="Previous Slide"
+          >
+            ❮
+          </button>
+          
+          <div className={styles.heroDotsContainer}>
+            {heroSlides.map((slide, idx) => (
+              <button
+                key={slide.tag}
+                type="button"
+                className={`${styles.heroDot} ${idx === currentSlideIndex ? styles.heroDotActive : ''}`}
+                onClick={() => setCurrentSlideIndex(idx)}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+          <button 
+            type="button" 
+            className={styles.heroArrowBtn} 
+            onClick={nextHeroSlide}
+            aria-label="Next Slide"
+          >
+            ❯
+          </button>
+        </div>
       </section>
 
       {/* Breadcrumbs */}
       <div className={styles.breadcrumbs}>
-        <span style={{ cursor: 'pointer' }} onClick={() => setActiveCategory('all')}>Home</span>
+        <span style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>Home</span>
         <span className={styles.breadcrumbDivider}>/</span>
-        <span>Collections</span>
-        <span className={styles.breadcrumbDivider}>/</span>
-        <span className={styles.breadcrumbActive}>
-          {categories.find(c => c.id === activeCategory)?.name || 'Pakistani Suits'}
-        </span>
+        <span>Curated Collections</span>
       </div>
-
-
 
       {/* Category Description */}
       <div className={styles.categoryDescContainer}>
         <p className={styles.categoryDescText}>
-          Our Pakistani Suit Collection celebrates timeless craftsmanship with luxurious fabrics, intricate embroidery, and graceful silhouettes designed for modern elegance. Each piece is a testament to South Asia's most cherished textile traditions.
+          Explore our curated mix of luxury Pakistani Suits, Co-Ord Sets, Festive Party Wear, and Royal Gift Hampers — crafted with timeless heritage and contemporary elegance.
         </p>
       </div>
 
-      {/* Products Grid Section */}
+      {/* Products Grid Section (Mixed Products on Home) */}
       <section id="products-section" className={styles.section} style={{ paddingTop: '20px' }}>
         <div className={styles.productsGrid}>
-          {filteredProducts.map((product) => (
+          {productsList.map((product) => (
             <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
               <div className={styles.productImageWrapper}>
                 <Image 
@@ -344,7 +419,7 @@ export default function Home() {
                   onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
                   aria-label="Add to wishlist"
                 >
-                  <svg width="14" height="14" fill={wishlist.includes(product.id) ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <svg width="14" height="14" fill={wishlist.includes(String(product.id)) ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                   </svg>
                 </button>
