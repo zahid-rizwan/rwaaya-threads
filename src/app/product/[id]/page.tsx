@@ -140,16 +140,25 @@ export default function ProductDetailPage() {
     }
   };
 
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+
   const selectedProduct = product || {
     id: 1,
     name: "Gulzar Ivory Suit",
     category: "Pakistani Suit",
     price: "PKR 18,500",
     image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png",
+    images: ["/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"],
     badge: "New",
     tag: "suits",
     description: "Intricately embroidered ivory lawn suit with pure silk dupatta."
   };
+
+  const productImages = (selectedProduct.images && selectedProduct.images.length > 0)
+    ? selectedProduct.images
+    : [selectedProduct.image];
+
+  const currentMainImage = productImages[selectedImageIndex] || productImages[0] || selectedProduct.image;
 
   return (
     <div className={styles.pageContainer}>
@@ -192,21 +201,18 @@ export default function ProductDetailPage() {
       <div className={styles.productDetailContent}>
         <div className={styles.productDetailGallery}>
           <div className={styles.mainDetailImageWrapper}>
-            <Image src={selectedProduct.image} alt={selectedProduct.name} fill className={styles.mainDetailImage} priority />
+            <Image src={currentMainImage} alt={selectedProduct.name} fill className={styles.mainDetailImage} priority />
           </div>
           <div className={styles.thumbnailList}>
-            <button className={`${styles.thumbnailBtn} ${styles.thumbnailActive}`}>
-              <Image src={selectedProduct.image} alt="" fill style={{ objectFit: 'cover' }} />
-            </button>
-            <button className={styles.thumbnailBtn}>
-              <Image src="/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png" alt="" fill style={{ objectFit: 'cover' }} />
-            </button>
-            <button className={styles.thumbnailBtn}>
-              <Image src="/assets/e7088a2366cb90adc3302932505be2bc610e9afe.png" alt="" fill style={{ objectFit: 'cover' }} />
-            </button>
-            <button className={styles.thumbnailBtn}>
-              <Image src="/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png" alt="" fill style={{ objectFit: 'cover' }} />
-            </button>
+            {productImages.map((imgUrl, idx) => (
+              <button 
+                key={idx} 
+                className={`${styles.thumbnailBtn} ${selectedImageIndex === idx ? styles.thumbnailActive : ''}`}
+                onClick={() => setSelectedImageIndex(idx)}
+              >
+                <Image src={imgUrl} alt={`${selectedProduct.name} view ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+              </button>
+            ))}
           </div>
         </div>
 

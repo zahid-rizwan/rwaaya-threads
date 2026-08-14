@@ -4,6 +4,7 @@ export interface Product {
   category: string;
   price: string;
   image: string;
+  images?: string[];
   badge?: string;
   tag: string;
   description?: string;
@@ -46,6 +47,7 @@ export async function getProducts(tag?: string): Promise<Product[]> {
         category: item.category?.name || item.category || 'Pakistani Suit',
         price: typeof item.price === 'number' ? `PKR ${item.price.toLocaleString()}` : (String(item.price).startsWith('PKR') ? String(item.price) : `PKR ${item.price}`),
         image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
+        images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
         badge: item.badge,
         tag: item.tag || 'suits',
         description: item.description,
@@ -74,6 +76,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         category: item.category?.name || item.category || 'Pakistani Suit',
         price: typeof item.price === 'number' ? `PKR ${item.price.toLocaleString()}` : item.price,
         image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
+        images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
         badge: item.badge,
         tag: item.tag || 'suits',
         description: item.description,
