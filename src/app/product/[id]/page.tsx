@@ -509,7 +509,8 @@ export default function ProductDetailPage() {
           <div>
             <h4 className={styles.footerColTitle}>Get in touch</h4>
             <ul className={styles.contactInfo}>
-              <li className={styles.contactItem}><span className={styles.contactLabel}>Address</span><span className={styles.contactValue}>12C, Lane 5, DHA, Karachi, Pakistan</span></li>
+              <li className={styles.contactItem}><span className={styles.contactLabel}>Primary Address</span><span className={styles.contactValue}>36/1/H /2 Bright Street, Kolkata - 700017</span></li>
+              <li className={styles.contactItem}><span className={styles.contactLabel}>Secondary Address</span><span className={styles.contactValue}>40 Foota Road, Shaheen Bagh, Delhi - 110025</span></li>
               <li className={styles.contactItem}><span className={styles.contactLabel}>Phone</span><span className={styles.contactValue}>+92 21 3524 8831</span></li>
               <li className={styles.contactItem}><span className={styles.contactLabel}>Email</span><span className={styles.contactValue}>info@riwaayathreads.com</span></li>
             </ul>

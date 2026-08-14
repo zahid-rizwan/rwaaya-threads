@@ -650,8 +650,12 @@ export default function Home() {
             <h4 className={styles.footerColTitle}>Get in touch</h4>
             <ul className={styles.contactInfo}>
               <li className={styles.contactItem}>
-                <span className={styles.contactLabel}>Address</span>
-                <span className={styles.contactValue}>12C, Lane 5, DHA, Karachi, Pakistan</span>
+                <span className={styles.contactLabel}>Primary Address</span>
+                <span className={styles.contactValue}>36/1/H /2 Bright Street, Kolkata - 700017</span>
+              </li>
+              <li className={styles.contactItem}>
+                <span className={styles.contactLabel}>Secondary Address</span>
+                <span className={styles.contactValue}>40 Foota Road, Shaheen Bagh, Delhi - 110025</span>
               </li>
               <li className={styles.contactItem}>
                 <span className={styles.contactLabel}>Phone</span>
