@@ -1739,6 +1739,20 @@
   border-color: var(--primary);
 }
 
+.sizeBoxDisabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  text-decoration: line-through;
+  background-color: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--text-muted);
+}
+
+.sizeBoxDisabled:hover {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
 .purchaseActionRow {
   display: flex;
   gap: 16px;
@@ -2472,7 +2486,249 @@
   text-decoration: underline;
 }
 
-/* Detail view description text */
+/* Login Form */
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.loginTitle {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #2c2c2c);
+  margin: 0 0 6px;
+}
+
+.loginSubtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted, #666);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.phoneInputContainer {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid rgba(184, 150, 62, 0.35);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fffdf8;
+  transition: border-color 0.2s ease;
+}
+
+.phoneInputContainer:focus-within {
+  border-color: var(--primary, #6b1929);
+  box-shadow: 0 0 0 3px rgba(107, 25, 41, 0.08);
+}
+
+.countryCodeSelector {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background: rgba(245, 238, 228, 0.6);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  border-right: 1px solid rgba(184, 150, 62, 0.25);
+  white-space: nowrap;
+}
+
+.phoneInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #2c2c2c;
+  background: transparent;
+}
+
+.phoneInput::placeholder {
+  color: #bbb;
+  font-weight: 400;
+}
+
+.loginSubmitBtn {
+  width: 100%;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6b1929, #8b2240);
+  color: #fffdf8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(107, 25, 41, 0.25);
+  margin-top: 6px;
+}
+
+.loginSubmitBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(107, 25, 41, 0.35);
+}
+
+.loginSubmitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loginDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(184, 150, 62, 0.2);
+}
+
+.dividerText {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 0.1em;
+}
+
+.googleLoginBtn {
+  width: 100%;
+  padding: 12px 20px;
+  border: 1.5px solid rgba(184, 150, 62, 0.3);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #2c2c2c;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.googleLoginBtn:hover {
+  background: #fafaf8;
+  border-color: rgba(184, 150, 62, 0.5);
+}
+
+.loginEmailBtn {
+  background: none;
+  border: none;
+  color: var(--primary, #6b1929);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: opacity 0.2s;
+}
+
+.loginEmailBtn:hover {
+  opacity: 0.7;
+}
+
+/* OTP Input Row */
+.otpInputRow {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 8px 0 4px;
+}
+
+.otpDigitInput {
+  width: 48px;
+  height: 56px;
+  border: 1.5px solid rgba(184, 150, 62, 0.35);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  background: #fffdf8;
+  outline: none;
+  transition: all 0.2s ease;
+  caret-color: var(--primary, #6b1929);
+}
+
+.otpDigitInput:focus {
+  border-color: var(--primary, #6b1929);
+  box-shadow: 0 0 0 3px rgba(107, 25, 41, 0.1);
+  background: #ffffff;
+}
+
+.otpDigitFilled {
+  border-color: var(--primary, #6b1929);
+  background: #ffffff;
+}
+
+/* Error Message */
+.loginError {
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 4px 0 0;
+  text-align: center;
+}
+
+/* Loading Spinner */
+.loginSpinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 253, 248, 0.3);
+  border-top-color: #fffdf8;
+  border-radius: 50%;
+  animation: loginSpin 0.6s linear infinite;
+}
+
+@keyframes loginSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Responsive Login */
+@media (max-width: 480px) {
+  .loginModalOverlay .loginCard {
+    max-width: 100%;
+    border-radius: 0;
+    min-height: 100vh;
+    margin: 0 !important;
+  }
+  .loginCardHeaderImage {
+    height: 120px;
+  }
+  .loginCardContent {
+    padding: 24px 18px;
+  }
+  .loginCloseButton {
+    top: 134px;
+    right: 14px;
+  }
+  .otpDigitInput {
+    width: 42px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+  .otpInputRow {
+    gap: 8px;
+  }
+  .loginTitle {
+    font-size: 1.3rem;
+  }
+}
+
+
 .productDescriptionText {
   font-size: 0.88rem;
   line-height: 1.6;
@@ -2852,6 +3108,292 @@
     transform: translateX(50%);
   }
 }
+
+/* Ultra-Luxury Storefront Cart Page Styles */
+.cartWorkspace {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.cartHeaderCard {
+  background: linear-gradient(135deg, rgba(255, 253, 248, 0.95), rgba(247, 239, 227, 0.8));
+  border: 1px solid rgba(184, 150, 62, 0.25);
+  border-radius: 12px;
+  padding: 24px 30px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 20px rgba(107, 25, 41, 0.03);
+  backdrop-filter: blur(10px);
+}
+
+.cartItemRow {
+  display: grid;
+  grid-template-columns: auto 110px 1fr auto;
+  gap: 22px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 22px;
+  border: 1px solid rgba(184, 150, 62, 0.2);
+  box-shadow: 0 4px 18px rgba(107, 25, 41, 0.04);
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.cartItemRow:hover {
+  border-color: rgba(184, 150, 62, 0.45);
+  box-shadow: 0 8px 28px rgba(107, 25, 41, 0.08);
+  transform: translateY(-2px);
+}
+
+.cartCheckbox {
+  width: 22px;
+  height: 22px;
+  accent-color: #6b1929;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.cartSummaryCard {
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf8 100%);
+  border-radius: 14px;
+  padding: 30px;
+  border: 1.5px solid rgba(184, 150, 62, 0.28);
+  box-shadow: 0 10px 35px rgba(107, 25, 41, 0.06);
+  position: sticky;
+  top: 95px;
+}
+
+.cartTrustBadge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(247, 239, 227, 0.4);
+  border: 1px solid rgba(184, 150, 62, 0.15);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  color: #4a4a4a;
+  font-weight: 500;
+}
+
+@media (max-width: 991px) {
+  .cartWorkspace {
+    grid-template-columns: 1fr !important;
+    gap: 28px !important;
+  }
+  .cartSummaryCard {
+    position: static !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .cartItemRow {
+    grid-template-columns: auto 75px 1fr !important;
+    gap: 12px !important;
+    padding: 14px !important;
+  }
+}
+
+/* Myntra-Inspired Luxury Mobile & Desktop Cart Card Styles */
+.myntraCartCard {
+  display: flex;
+  gap: 16px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1.5px solid rgba(184, 150, 62, 0.22);
+  box-shadow: 0 4px 20px rgba(107, 25, 41, 0.04);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.myntraImgWrapper {
+  width: 100px;
+  height: 135px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background-color: #f9f6f0;
+  border: 1px solid rgba(184, 150, 62, 0.2);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.myntraCheckCircle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(184, 150, 62, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.myntraCheckActive {
+  background: #6b1929;
+  border-color: #6b1929;
+}
+
+.myntraCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.myntraCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.myntraBrandTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.myntraProductSubtitle {
+  font-size: 0.78rem;
+  color: #666666;
+  margin: 2px 0 0 0;
+}
+
+.myntraCloseBtn {
+  background: none;
+  border: none;
+  color: #888888;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.myntraCloseBtn:hover {
+  color: #dc2626;
+}
+
+.myntraPillRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.myntraSelectPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffdf8;
+  border: 1px solid rgba(184, 150, 62, 0.35);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2c2c2c;
+}
+
+.myntraQtyPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fffdf8;
+  border: 1.5px solid rgba(107, 25, 41, 0.35);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b1929;
+}
+
+.miniStepBtn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: #f5eee4;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #6b1929;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stockUrgencyTag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #b8963e;
+}
+
+.myntraPriceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.currentPrice {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #2c2c2c;
+}
+
+.mrpPrice {
+  font-size: 0.85rem;
+  color: #888888;
+  text-decoration: line-through;
+}
+
+.savingsTag {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #b8963e;
+}
+
+.myntraDeliveryInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(184, 150, 62, 0.2);
+  font-size: 0.75rem;
+  color: #4a4a4a;
+}
+
+@media (max-width: 640px) {
+  .myntraCartCard {
+    padding: 14px;
+    gap: 12px;
+    border-radius: 14px;
+  }
+  .myntraImgWrapper {
+    width: 85px;
+    height: 115px;
+    border-radius: 10px;
+  }
+}
+
+
+
+
 
 
 

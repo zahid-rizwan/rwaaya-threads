@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import styles from '@/app/page.module.css';
 
-import { getProducts, Product } from '@/lib/api';
+import { getProducts, fetchCart, Product } from '@/lib/api';
 
 const categoryBanners: Record<string, { title: string; subtitle: string; description: string; image: string }> = {
   all: {
@@ -54,6 +54,12 @@ export default function CategoryPage() {
   const [emailInput, setEmailInput] = useState<string>('');
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetchCart().then(c => {
+      if (c && c.items) setCartCount(c.items.length);
+    });
+  }, []);
 
   useEffect(() => {
     getProducts(activeCategory).then((data) => {
@@ -148,7 +154,7 @@ export default function CategoryPage() {
       {/* 1. Announcement Bar */}
       <div className={styles.announcementBar}>
         <div className={styles.announcementText}>
-          ✦ FREE SHIPPING ON ORDERS ABOVE PKR 5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE ✦ FREE SHIPPING ON ORDERS ABOVE PKR 5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE
+          ✦ FREE SHIPPING ON ORDERS ABOVE ₹5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE ✦ FREE SHIPPING ON ORDERS ABOVE ₹5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE
         </div>
       </div>
 
@@ -160,12 +166,42 @@ export default function CategoryPage() {
           </a>
         </div>
 
-        <div className={styles.navRight}>
+        <div className={styles.navRight} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button className={styles.iconButton} aria-label="Search">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
+          </button>
+
+          <button 
+            className={styles.iconButton} 
+            aria-label="Shopping Bag"
+            onClick={() => router.push('/cart')}
+            style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
+            </svg>
+            <span style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '-6px',
+              backgroundColor: '#6b1929',
+              color: '#ffffff',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1.5px solid #fff'
+            }}>
+              {cartCount}
+            </span>
           </button>
         </div>
       </header>
@@ -420,14 +456,13 @@ export default function CategoryPage() {
 
         <button 
           type="button"
-          onClick={() => router.push('/collections/suits')} 
+          onClick={() => router.push('/cart')} 
           className={styles.bottomNavItem}
         >
           <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
             </svg>
             {cartCount > 0 && <span className={styles.bottomNavBadge}>{cartCount}</span>}
           </div>
@@ -436,7 +471,14 @@ export default function CategoryPage() {
 
         <button 
           type="button"
-          onClick={() => router.push('/login')} 
+          onClick={() => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
+            if (token) {
+              router.push('/profile');
+            } else {
+              router.push('/login');
+            }
+          }} 
           className={styles.bottomNavItem}
         >
           <div className={styles.bottomNavIcon}>

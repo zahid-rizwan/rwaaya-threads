@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import styles from '@/app/page.module.css';
 
-import { getProductById, getProducts, Product } from '@/lib/api';
+import { getProductById, getProducts, fetchCart, addCartItem, Product } from '@/lib/api';
 
 interface Testimonial {
   text: string;
@@ -39,6 +39,9 @@ export default function ProductDetailPage() {
       if (data) setProduct(data);
     });
     getProducts().then(list => setRelatedProducts(list.slice(0, 4)));
+    fetchCart().then(c => {
+      if (c && c.items) setCartCount(c.items.length);
+    });
   }, [rawId]);
 
   useEffect(() => {
@@ -62,22 +65,7 @@ export default function ProductDetailPage() {
 
 
 
-  const products: Product[] = [
-    { id: 1, name: "Gulzar Ivory Suit", category: "Pakistani Suit", price: "PKR 18,500", image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png", badge: "New", tag: "suits" },
-    { id: 2, name: "Amber Heritage Lawn", category: "Co-ord Set", price: "PKR 14,200", image: "/assets/f5033b1a4ddb926f41bc87a1c3a2f99082eaa624.png", badge: "Bestseller", tag: "coords" },
-    { id: 3, name: "Rose Dust Gharara", category: "Bridal Ready", price: "PKR 24,500", image: "/assets/14b11c8de3394bd25477cfb02149a056c046d507.png", badge: "Limited", tag: "party" },
-    { id: 4, name: "Chestnut Formal Set", category: "Ethnic Wear", price: "PKR 9,800", image: "/assets/56d6e1294f3009f3c4a559fbd7d8cef93accbb88.png", tag: "party" },
-    { id: 5, name: "Emerald Elegance", category: "Pakistani Suit", price: "PKR 16,500", image: "/assets/6c39f865e80859a62255826c54bd32b849dd3ca2.png", badge: "New", tag: "suits" },
-    { id: 6, name: "Ruby Velvet Edit", category: "Party Wear", price: "PKR 22,000", image: "/assets/70b5f877ef1ef7414a1384b3406d6cd1f8083de7.png", badge: "Bestseller", tag: "party" },
-    { id: 7, name: "Sapphire Silk Suit", category: "Pakistani Suit", price: "PKR 19,500", image: "/assets/f1518341f4e01d47c3cac265752092154acdaa3b.png", tag: "suits" },
-    { id: 8, name: "Forest Green Set", category: "Co-ord Set", price: "PKR 15,000", image: "/assets/5d977febba2763ad18f4d8a4a72993197abe53ac.png", tag: "coords" },
-    { id: 9, name: "Velvet Evening Suit", category: "Party Wear", price: "PKR 28,000", image: "/assets/70b5f877ef1ef7414a1384b3406d6cd1f8083de7.png", badge: "Bestseller", tag: "party" },
-    { id: 10, name: "Shahi Heritage Hamper", category: "Gift Hamper", price: "PKR 12,500", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", badge: "Exclusive", tag: "hampers" },
-    { id: 11, name: "Darbar Premium Gift Box", category: "Gift Hamper", price: "PKR 8,500", image: "/assets/5d977febba2763ad18f4d8a4a72993197abe53ac.png", badge: "New", tag: "hampers" },
-    { id: 12, name: "Midnight Zari Lehenga", category: "Silk Suite", price: "PKR 38,500", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", badge: "Limited", tag: "party" },
-    { id: 13, name: "Crimson Party Suit", category: "Organza Suit", price: "PKR 22,000", image: "/assets/6c39f865e80859a62255826c54bd32b849dd3ca2.png", badge: "New", tag: "party" },
-    { id: 14, name: "Gold Organza Party Set", category: "Organza Suit", price: "PKR 26,500", image: "/assets/f5033b1a4ddb926f41bc87a1c3a2f99082eaa624.png", badge: "Limited", tag: "party" }
-  ];
+
 
   const testimonials: Testimonial[] = [
     { text: "The quality of the lawn and the intricate embroidery exceeded all my expectations. It feels like wearing a piece of art.", author: "Mariam K.", city: "Karachi" },
@@ -101,7 +89,8 @@ export default function ProductDetailPage() {
   ];
 
   const addToBag = (productId: string | number) => {
-    setCartCount(prev => prev + 1);
+    addCartItem(String(productId), selectedSize, productQuantity, selectedColor);
+    setCartCount(prev => prev + productQuantity);
     const alertBox = document.createElement('div');
     alertBox.style.position = 'fixed';
     alertBox.style.bottom = '20px';
@@ -160,13 +149,33 @@ export default function ProductDetailPage() {
 
   const currentMainImage = productImages[selectedImageIndex] || productImages[0] || selectedProduct.image;
 
+  const allSizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+  const getSizeStatus = (sizeName: string) => {
+    if (!selectedProduct.variants || selectedProduct.variants.length === 0) {
+      return { isAvailable: true, isOutOfStock: false };
+    }
+    const match = selectedProduct.variants.find(
+      v => v.size?.toUpperCase() === sizeName.toUpperCase()
+    );
+    if (!match) {
+      return { isAvailable: false, isOutOfStock: true };
+    }
+    if (match.stock <= 0) {
+      return { isAvailable: true, isOutOfStock: true };
+    }
+    return { isAvailable: true, isOutOfStock: false };
+  };
+
+  const isCurrentSizeOutOfStock = getSizeStatus(selectedSize).isOutOfStock;
+
   return (
     <div className={styles.pageContainer}>
       
       {/* 1. Announcement Bar */}
       <div className={styles.announcementBar}>
         <div className={styles.announcementText}>
-          ✦ FREE SHIPPING ON ORDERS ABOVE PKR 5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE ✦ FREE SHIPPING ON ORDERS ABOVE PKR 5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE
+          ✦ FREE SHIPPING ON ORDERS ABOVE ₹5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE ✦ FREE SHIPPING ON ORDERS ABOVE ₹5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE
         </div>
       </div>
 
@@ -178,12 +187,42 @@ export default function ProductDetailPage() {
           </a>
         </div>
 
-        <div className={styles.navRight}>
+        <div className={styles.navRight} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button className={styles.iconButton} aria-label="Search">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
+          </button>
+
+          <button 
+            className={styles.iconButton} 
+            aria-label="Shopping Bag"
+            onClick={() => router.push('/cart')}
+            style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
+            </svg>
+            <span style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '-6px',
+              backgroundColor: '#6b1929',
+              color: '#ffffff',
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1.5px solid #fff'
+            }}>
+              {cartCount}
+            </span>
           </button>
         </div>
       </header>
@@ -255,19 +294,32 @@ export default function ProductDetailPage() {
 
           <div className={styles.detailOptionSection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-              <label className={styles.detailOptionLabel}>SIZE — {selectedSize}</label>
+              <label className={styles.detailOptionLabel}>
+                SIZE — {selectedSize}
+                {isCurrentSizeOutOfStock && (
+                  <span style={{ color: 'var(--color-danger, #dc3545)', marginLeft: '8px', fontSize: '0.72rem', fontWeight: 600 }}>
+                    (OUT OF STOCK)
+                  </span>
+                )}
+              </label>
               <button className={styles.sizeGuideLink}>Size Guide</button>
             </div>
             <div className={styles.sizeSelectorList}>
-              {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => (
-                <button
-                  key={size}
-                  className={`${styles.sizeBox} ${selectedSize === size ? styles.sizeBoxActive : ''}`}
-                  onClick={() => setSelectedSize(size)}
-                >
-                  {size}
-                </button>
-              ))}
+              {allSizesList.map((size) => {
+                const { isAvailable, isOutOfStock } = getSizeStatus(size);
+                const disabled = !isAvailable || isOutOfStock;
+                return (
+                  <button
+                    key={size}
+                    disabled={disabled}
+                    className={`${styles.sizeBox} ${selectedSize === size ? styles.sizeBoxActive : ''} ${disabled ? styles.sizeBoxDisabled : ''}`}
+                    onClick={() => !disabled && setSelectedSize(size)}
+                    title={disabled ? `${size} - Out of Stock / Unavailable` : `Select Size ${size}`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -280,14 +332,25 @@ export default function ProductDetailPage() {
 
             <button 
               className={styles.btnPrimary} 
-              style={{ flexGrow: 1, padding: '16px 24px', display: 'flex', justifyContent: 'center' }}
+              disabled={isCurrentSizeOutOfStock}
+              style={{ 
+                flexGrow: 1, 
+                padding: '16px 24px', 
+                display: 'flex', 
+                justifyContent: 'center',
+                opacity: isCurrentSizeOutOfStock ? 0.5 : 1,
+                cursor: isCurrentSizeOutOfStock ? 'not-allowed' : 'pointer',
+                backgroundColor: isCurrentSizeOutOfStock ? 'var(--text-muted, #777)' : undefined
+              }}
               onClick={() => {
-                for(let i=0; i<productQuantity; i++) {
-                  addToBag(selectedProduct.id);
+                if (!isCurrentSizeOutOfStock) {
+                  for(let i=0; i<productQuantity; i++) {
+                    addToBag(selectedProduct.id);
+                  }
                 }
               }}
             >
-              ADD TO BAG
+              {isCurrentSizeOutOfStock ? "OUT OF STOCK" : "ADD TO BAG"}
             </button>
           </div>
 
@@ -321,13 +384,13 @@ export default function ProductDetailPage() {
 
           <div className={styles.detailTabContent}>
             {activeDetailTab === 'details' && (
-              <p>Plush velvet with gold piping and tassel detail. This exquisite piece is crafted by master artisans using traditional techniques passed down through generations. Each set undergoes rigorous quality checks before it reaches your hands.</p>
+              <p>{selectedProduct.description || "Plush velvet with gold piping and tassel detail. This exquisite piece is crafted by master artisans using traditional techniques passed down through generations. Each set undergoes rigorous quality checks before it reaches your hands."}</p>
             )}
             {activeDetailTab === 'materials' && (
-              <p>Pure handloom organic threads, 100% premium silk, cotton-velvet fabric base, and natural dye embellishments.</p>
+              <p>{selectedProduct.materials || "Pure handloom organic threads, 100% premium silk, cotton-velvet fabric base, and natural dye embellishments."}</p>
             )}
             {activeDetailTab === 'shipping' && (
-              <p>Free delivery on orders over PKR 5,000. 7-day hassle-free return window and quick exchanges.</p>
+              <p>{selectedProduct.shipping || "Free delivery on orders over PKR 5,000. 7-day hassle-free return window and quick exchanges."}</p>
             )}
           </div>
         </div>
@@ -574,14 +637,13 @@ export default function ProductDetailPage() {
 
         <button 
           type="button"
-          onClick={() => router.push('/collections/suits')} 
+          onClick={() => router.push('/cart')} 
           className={styles.bottomNavItem}
         >
           <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
             </svg>
             {cartCount > 0 && <span className={styles.bottomNavBadge}>{cartCount}</span>}
           </div>
@@ -590,7 +652,14 @@ export default function ProductDetailPage() {
 
         <button 
           type="button"
-          onClick={() => router.push('/login')} 
+          onClick={() => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
+            if (token) {
+              router.push('/profile');
+            } else {
+              router.push('/login');
+            }
+          }} 
           className={styles.bottomNavItem}
         >
           <div className={styles.bottomNavIcon}>
