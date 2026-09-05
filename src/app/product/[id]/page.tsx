@@ -19,6 +19,7 @@ export default function ProductDetailPage() {
   
   const rawId = (params.id as string) || '1';
   
+  const [loading, setLoading] = useState<boolean>(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedColor, setSelectedColor] = useState<string>('Ivory');
@@ -35,9 +36,15 @@ export default function ProductDetailPage() {
   const [scrolled, setScrolled] = useState<boolean>(false);
 
   useEffect(() => {
+    setLoading(true);
+    setProduct(null);
+    setSelectedImageIndex(0);
+
     getProductById(rawId).then(data => {
       if (data) setProduct(data);
-    });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+
     getProducts().then(list => setRelatedProducts(list.slice(0, 4)));
     fetchCart().then(c => {
       if (c && c.items) setCartCount(c.items.length);
@@ -131,16 +138,26 @@ export default function ProductDetailPage() {
 
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
 
+  if (loading) {
+    return (
+      <div className={styles.pageContainer} style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--accent)' }}>Loading Atelier Details...</p>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   const selectedProduct = product || {
-    id: 1,
-    name: "Gulzar Ivory Suit",
+    id: rawId,
+    name: "Gulzar Couture Suit",
     category: "Pakistani Suit",
-    price: "PKR 18,500",
+    price: "₹18,500",
     image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png",
     images: ["/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"],
     badge: "New",
     tag: "suits",
-    description: "Intricately embroidered ivory lawn suit with pure silk dupatta."
+    description: "Intricately embroidered lawn suit with pure silk dupatta."
   };
 
   const productImages = (selectedProduct.images && selectedProduct.images.length > 0)

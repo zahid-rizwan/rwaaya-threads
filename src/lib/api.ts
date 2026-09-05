@@ -44,6 +44,18 @@ export interface CartData {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
 
+function resolveCategoryName(cat: any, tag: string): string {
+  if (cat && typeof cat === 'object' && cat.name) return cat.name;
+  if (cat && typeof cat === 'string' && isNaN(Number(cat))) return cat;
+  const t = (tag || '').toLowerCase();
+  const c = String(cat || '');
+  if (t === 'coords' || c === '2') return 'Co-Ord Set';
+  if (t === 'party' || c === '3') return 'Party Wear';
+  if (t === 'hampers' || c === '4') return 'Gift Hamper';
+  if (t === 'suits' || c === '1') return 'Pakistani Suit';
+  return 'Pakistani Suit';
+}
+
 export async function getProducts(tag?: string): Promise<Product[]> {
   try {
     const url = tag && tag !== 'all' ? `${API_BASE_URL}/products?tag=${tag}` : `${API_BASE_URL}/products`;
@@ -60,7 +72,7 @@ export async function getProducts(tag?: string): Promise<Product[]> {
       return data.map((item: any) => ({
         id: item._id || item.id,
         name: item.name,
-        category: item.category?.name || item.category || 'Pakistani Suit',
+        category: resolveCategoryName(item.category, item.tag),
         price: typeof item.price === 'number' ? `₹${item.price.toLocaleString()}` : (String(item.price).startsWith('₹') ? String(item.price) : `₹${item.price.replace(/PKR\s*/g, '')}`),
         image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
         images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
@@ -90,7 +102,7 @@ export async function getProductById(id: string): Promise<Product | null> {
         return {
           id: item._id || item.id,
           name: item.name,
-          category: item.category?.name || item.category || 'Pakistani Suit',
+          category: resolveCategoryName(item.category, item.tag),
           price: typeof item.price === 'number' ? `₹${item.price.toLocaleString()}` : String(item.price).replace(/PKR\s*/g, '₹'),
           image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
           images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],

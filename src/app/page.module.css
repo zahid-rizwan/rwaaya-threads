@@ -578,6 +578,7 @@
 
 .productImage {
   object-fit: cover;
+  object-position: top center;
   transition: var(--transition-slow);
 }
 
@@ -1574,6 +1575,7 @@
 
 .mainDetailImage {
   object-fit: cover;
+  object-position: top center;
 }
 
 .thumbnailList {
