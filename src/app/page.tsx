@@ -677,7 +677,7 @@ export default function Home() {
               </li>
               <li className={styles.contactItem}>
                 <span className={styles.contactLabel}>Phone</span>
-                <span className={styles.contactValue}>+92 21 3524 8831</span>
+                <span className={styles.contactValue}>+9172775060, +917250846963, +919163037924</span>
               </li>
               <li className={styles.contactItem}>
                 <span className={styles.contactLabel}>Email</span>
