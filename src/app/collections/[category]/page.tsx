@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import styles from '@/app/page.module.css';
 
 import { getProducts, fetchCart, Product } from '@/lib/api';
+import ProductSkeletonGrid from '@/components/ProductSkeletonGrid';
 
 const categoryBanners: Record<string, { title: string; subtitle: string; description: string; image: string }> = {
   all: {
@@ -48,6 +49,7 @@ export default function CategoryPage() {
   const activeCategory = selectedCategory || (params.category as string) || 'suits';
   
   const [productsList, setProductsList] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [cartCount, setCartCount] = useState<number>(0);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -62,8 +64,12 @@ export default function CategoryPage() {
   }, []);
 
   useEffect(() => {
+    setLoadingProducts(true);
     getProducts(activeCategory).then((data) => {
-      setProductsList(data);
+      setProductsList(data || []);
+      setLoadingProducts(false);
+    }).catch(() => {
+      setLoadingProducts(false);
     });
   }, [activeCategory]);
 
@@ -280,29 +286,33 @@ export default function CategoryPage() {
 
       {/* Products Grid */}
       <section id="products-section" className={styles.section} style={{ paddingTop: '20px' }}>
-        <div className={styles.productsGrid}>
-          {filteredProducts.map((product) => (
-            <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
-              <div className={styles.productImageWrapper}>
-                <Image src={product.image} alt={product.name} fill className={styles.productImage} />
-                {product.badge && <span className={styles.productBadge}>{product.badge}</span>}
-                <button className={styles.productWishlistBtn} onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}>
-                  <svg width="14" height="14" fill={wishlist.includes(String(product.id)) ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                  </svg>
-                </button>
-                <button className={styles.addBagHover} onClick={(e) => { e.stopPropagation(); addToBag(product.id); }}>
-                  <span className={styles.addBagText}>Add to Bag</span>
-                </button>
+        {loadingProducts ? (
+          <ProductSkeletonGrid count={4} />
+        ) : (
+          <div className={styles.productsGrid}>
+            {filteredProducts.map((product) => (
+              <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
+                <div className={styles.productImageWrapper}>
+                  <Image src={product.image} alt={product.name} fill className={styles.productImage} />
+                  {product.badge && <span className={styles.productBadge}>{product.badge}</span>}
+                  <button className={styles.productWishlistBtn} onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}>
+                    <svg width="14" height="14" fill={wishlist.includes(String(product.id)) ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
+                  <button className={styles.addBagHover} onClick={(e) => { e.stopPropagation(); addToBag(product.id); }}>
+                    <span className={styles.addBagText}>Add to Bag</span>
+                  </button>
+                </div>
+                <div className={styles.productInfo}>
+                  <p className={styles.productCategory}>{product.category}</p>
+                  <h4 className={styles.productTitle}>{product.name}</h4>
+                  <p className={styles.productPrice}>{product.price}</p>
+                </div>
               </div>
-              <div className={styles.productInfo}>
-                <p className={styles.productCategory}>{product.category}</p>
-                <h4 className={styles.productTitle}>{product.name}</h4>
-                <p className={styles.productPrice}>{product.price}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
 

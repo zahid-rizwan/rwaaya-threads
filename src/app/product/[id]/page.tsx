@@ -148,17 +148,19 @@ export default function ProductDetailPage() {
     );
   }
 
-  const selectedProduct = product || {
-    id: rawId,
-    name: "Gulzar Couture Suit",
-    category: "Pakistani Suit",
-    price: "₹18,500",
-    image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png",
-    images: ["/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"],
-    badge: "New",
-    tag: "suits",
-    description: "Intricately embroidered lawn suit with pure silk dupatta."
-  };
+  if (!product) {
+    return (
+      <div className={styles.pageContainer} style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px', textAlign: 'center', padding: '40px 20px' }}>
+        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', color: 'var(--primary)' }}>Product Not Found</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>The requested product listing could not be retrieved from the catalog.</p>
+        <button className={styles.btnGold} onClick={() => router.push('/')} style={{ marginTop: '12px' }}>
+          Return to Atelier Storefront
+        </button>
+      </div>
+    );
+  }
+
+  const selectedProduct = product;
 
   const productImages = (selectedProduct.images && selectedProduct.images.length > 0)
     ? selectedProduct.images

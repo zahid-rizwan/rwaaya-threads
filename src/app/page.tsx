@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { getProducts, fetchCart, addCartItem, Product } from '@/lib/api';
+import ProductSkeletonGrid from '@/components/ProductSkeletonGrid';
 import styles from './page.module.css';
 
 interface Testimonial {
@@ -14,7 +15,7 @@ interface Testimonial {
 
 const categoryBanners: Record<string, { title: string; subtitle: string; description: string; image: string }> = {
   all: {
-    title: "Pakistani Suits",
+    title: "All Collection",
     subtitle: "Discover timeless silhouettes",
     description: "Discover timeless silhouettes crafted with elegance, tradition, and contemporary luxury.",
     image: "/assets/2131d28031801befa44bd105ec5914c27b763b64.png"
@@ -45,17 +46,11 @@ const categoryBanners: Record<string, { title: string; subtitle: string; descrip
   }
 };
 
-const defaultHomeProducts: Product[] = [
-  { id: '1', name: "Gulzar Ivory Suit", category: "Pakistani Suit", price: "₹18,500", image: "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png", images: ["/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"], badge: "New", tag: "suits", description: "Intricately embroidered ivory lawn suit with pure silk dupatta." },
-  { id: '2', name: "Amber Heritage Lawn", category: "Co-Ord Set", price: "₹14,200", image: "/assets/f5033b1a4ddb926f41bc87a1c3a2f99082eaa624.png", images: ["/assets/f5033b1a4ddb926f41bc87a1c3a2f99082eaa624.png"], badge: "Bestseller", tag: "coords", description: "2-piece curated lawn co-ord set with handcrafted threadwork." },
-  { id: '3', name: "Rose Dust Gharara", category: "Party Wear", price: "₹24,500", image: "/assets/14b11c8de3394bd25477cfb02149a056c046d507.png", images: ["/assets/14b11c8de3394bd25477cfb02149a056c046d507.png"], badge: "Limited", tag: "party", description: "Bridal ready formal gharara set with tilla & sequin work." },
-  { id: '4', name: "Shahi Heritage Hamper", category: "Gift Hamper", price: "₹12,500", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", images: ["/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png"], badge: "Exclusive", tag: "hampers", description: "Luxury gift hamper including handcrafted shawl, perfume, and dried fruits box." }
-];
-
 export default function Home() {
   const router = useRouter();
 
-  const [productsList, setProductsList] = useState<Product[]>(defaultHomeProducts);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
   const [activeTestimonial, setActiveTestimonial] = useState<number>(0);
   const [cartCount, setCartCount] = useState<number>(0);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -65,10 +60,12 @@ export default function Home() {
   const [scrolled, setScrolled] = useState<boolean>(false);
 
   useEffect(() => {
+    setLoadingProducts(true);
     getProducts().then((data) => {
-      if (Array.isArray(data) && data.length > 0) {
-        setProductsList(data);
-      }
+      setProductsList(Array.isArray(data) ? data : []);
+      setLoadingProducts(false);
+    }).catch(() => {
+      setLoadingProducts(false);
     });
     fetchCart().then((c) => {
       if (c && c.items) setCartCount(c.items.length);
@@ -428,43 +425,47 @@ export default function Home() {
 
       {/* Products Grid Section (Mixed Products on Home) */}
       <section id="products-section" className={styles.section} style={{ paddingTop: '20px' }}>
-        <div className={styles.productsGrid}>
-          {productsList.map((product) => (
-            <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
-              <div className={styles.productImageWrapper}>
-                <Image 
-                  src={product.image} 
-                  alt={product.name} 
-                  fill
-                  className={styles.productImage}
-                />
-                {product.badge && (
-                  <span className={styles.productBadge}>{product.badge}</span>
-                )}
-                <button 
-                  className={styles.productWishlistBtn}
-                  onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                  aria-label="Add to wishlist"
-                >
-                  <svg width="14" height="14" fill={wishlist.includes(String(product.id)) ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                  </svg>
-                </button>
-                <button 
-                  className={styles.addBagHover}
-                  onClick={(e) => { e.stopPropagation(); addToBag(product.id); }}
-                >
-                  <span className={styles.addBagText}>Add to Bag</span>
-                </button>
+        {loadingProducts ? (
+          <ProductSkeletonGrid count={4} />
+        ) : (
+          <div className={styles.productsGrid}>
+            {productsList.map((product) => (
+              <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
+                <div className={styles.productImageWrapper}>
+                  <Image 
+                    src={product.image} 
+                    alt={product.name} 
+                    fill
+                    className={styles.productImage}
+                  />
+                  {product.badge && (
+                    <span className={styles.productBadge}>{product.badge}</span>
+                  )}
+                  <button 
+                    className={styles.productWishlistBtn}
+                    onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                    aria-label="Add to wishlist"
+                  >
+                    <svg width="14" height="14" fill={wishlist.includes(String(product.id)) ? "var(--primary)" : "none"} stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
+                  <button 
+                    className={styles.addBagHover}
+                    onClick={(e) => { e.stopPropagation(); addToBag(product.id); }}
+                  >
+                    <span className={styles.addBagText}>Add to Bag</span>
+                  </button>
+                </div>
+                <div className={styles.productInfo}>
+                  <p className={styles.productCategory}>{product.category}</p>
+                  <h4 className={styles.productTitle}>{product.name}</h4>
+                  <p className={styles.productPrice}>{product.price}</p>
+                </div>
               </div>
-              <div className={styles.productInfo}>
-                <p className={styles.productCategory}>{product.category}</p>
-                <h4 className={styles.productTitle}>{product.name}</h4>
-                <p className={styles.productPrice}>{product.price}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Exclusive New Festive Collection Banner */}
