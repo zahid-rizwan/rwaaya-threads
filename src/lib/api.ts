@@ -6,11 +6,22 @@ export interface ProductVariant {
   stock: number;
 }
 
+export interface ColorOption {
+  name: string;
+  hex: string;
+  inStock?: boolean;
+}
+
 export interface Product {
   id: number | string;
   name: string;
   category: string;
   price: string;
+  rawPrice?: number;
+  originalPrice?: string;
+  rawOriginalPrice?: number;
+  discountPercent?: number;
+  colors?: ColorOption[];
   image: string;
   images?: string[];
   variants?: ProductVariant[];
@@ -70,6 +81,41 @@ function resolveCategoryName(cat: any, tag?: string): string {
   return 'Pakistani Suit';
 }
 
+function mapProductItem(item: any): Product {
+  const priceNum = typeof item.price === 'number' ? item.price : (parseFloat(String(item.price).replace(/[^\d.]/g, '')) || 18500);
+  const origPriceNum = item.originalPrice ? (typeof item.originalPrice === 'number' ? item.originalPrice : parseFloat(String(item.originalPrice).replace(/[^\d.]/g, ''))) : Math.round(priceNum * 1.25);
+  const discPct = item.discountPercent !== undefined ? item.discountPercent : (origPriceNum > priceNum ? Math.round(((origPriceNum - priceNum) / origPriceNum) * 100) : 0);
+  
+  const colorsList: ColorOption[] = Array.isArray(item.colors) && item.colors.length > 0
+    ? item.colors
+    : [
+        { name: 'Emerald Green', hex: '#046A38', inStock: true },
+        { name: 'Royal Maroon', hex: '#800000', inStock: true },
+        { name: 'Dusty Rose', hex: '#D8A7B1', inStock: true }
+      ];
+
+  return {
+    id: item._id || item.id,
+    name: item.name,
+    category: resolveCategoryName(item.category, item.tag),
+    price: `₹${priceNum.toLocaleString('en-IN')}`,
+    rawPrice: priceNum,
+    originalPrice: origPriceNum > priceNum ? `₹${origPriceNum.toLocaleString('en-IN')}` : undefined,
+    rawOriginalPrice: origPriceNum,
+    discountPercent: discPct,
+    colors: colorsList,
+    image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
+    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
+    variants: Array.isArray(item.variants) ? item.variants : [],
+    badge: item.badge,
+    tag: item.tag || 'suits',
+    description: item.description,
+    materials: item.materials,
+    shipping: item.shipping,
+    sellerShop: item.seller?.shopName
+  };
+}
+
 export async function getProducts(tag?: string): Promise<Product[]> {
   try {
     const url = tag && tag !== 'all' ? `${API_BASE_URL}/products?tag=${tag}` : `${API_BASE_URL}/products`;
@@ -83,21 +129,7 @@ export async function getProducts(tag?: string): Promise<Product[]> {
     const data = (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
 
     if (Array.isArray(data)) {
-      return data.map((item: any) => ({
-        id: item._id || item.id,
-        name: item.name,
-        category: resolveCategoryName(item.category, item.tag),
-        price: typeof item.price === 'number' ? `₹${item.price.toLocaleString()}` : (String(item.price).startsWith('₹') ? String(item.price) : `₹${item.price.replace(/PKR\s*/g, '')}`),
-        image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
-        images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
-        variants: Array.isArray(item.variants) ? item.variants : [],
-        badge: item.badge,
-        tag: item.tag || 'suits',
-        description: item.description,
-        materials: item.materials,
-        shipping: item.shipping,
-        sellerShop: item.seller?.shopName
-      }));
+      return data.map((item: any) => mapProductItem(item));
     }
   } catch (error) {
     console.error('Error fetching live products from backend API:', error);
@@ -113,21 +145,7 @@ export async function getProductById(id: string): Promise<Product | null> {
       const payload = await res.json();
       const item = (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
       if (item) {
-        return {
-          id: item._id || item.id,
-          name: item.name,
-          category: resolveCategoryName(item.category, item.tag),
-          price: typeof item.price === 'number' ? `₹${item.price.toLocaleString()}` : String(item.price).replace(/PKR\s*/g, '₹'),
-          image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
-          images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
-          variants: Array.isArray(item.variants) ? item.variants : [],
-          badge: item.badge,
-          tag: item.tag || 'suits',
-          description: item.description,
-          materials: item.materials,
-          shipping: item.shipping,
-          sellerShop: item.seller?.shopName
-        };
+        return mapProductItem(item);
       }
     }
   } catch (error) {

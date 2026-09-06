@@ -307,7 +307,37 @@ export default function CategoryPage() {
                 <div className={styles.productInfo}>
                   <p className={styles.productCategory}>{product.category}</p>
                   <h4 className={styles.productTitle}>{product.name}</h4>
-                  <p className={styles.productPrice}>{product.price}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <span className={styles.productPrice}>{product.price}</span>
+                    {product.originalPrice && (
+                      <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '0.82rem', fontFamily: 'var(--font-sans)' }}>
+                        {product.originalPrice}
+                      </span>
+                    )}
+                    {Boolean(product.discountPercent) && (
+                      <span style={{ backgroundColor: '#eef9f2', color: '#2e7d32', fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>
+                        {product.discountPercent}% OFF
+                      </span>
+                    )}
+                  </div>
+                  {product.colors && product.colors.length > 0 && (
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '6px', alignItems: 'center' }}>
+                      {product.colors.filter(c => c.inStock !== false).map((c, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            backgroundColor: c.hex || '#ccc',
+                            border: '1px solid rgba(0,0,0,0.15)',
+                            display: 'inline-block'
+                          }}
+                          title={c.name}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

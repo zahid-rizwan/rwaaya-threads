@@ -41,7 +41,13 @@ export default function ProductDetailPage() {
     setSelectedImageIndex(0);
 
     getProductById(rawId).then(data => {
-      if (data) setProduct(data);
+      if (data) {
+        setProduct(data);
+        if (data.colors && data.colors.length > 0) {
+          const avail = data.colors.find(c => c.inStock !== false);
+          if (avail) setSelectedColor(avail.name);
+        }
+      }
       setLoading(false);
     }).catch(() => setLoading(false));
 
@@ -287,21 +293,34 @@ export default function ProductDetailPage() {
             <span className={styles.reviewsCount}>(128 reviews)</span>
           </div>
 
-          <div className={styles.detailProductPrice}>{selectedProduct.price}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', margin: '16px 0 20px 0' }}>
+            <span className={styles.detailProductPrice} style={{ margin: 0 }}>{selectedProduct.price}</span>
+            {selectedProduct.originalPrice && (
+              <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '1.25rem', fontFamily: 'var(--font-serif)' }}>
+                {selectedProduct.originalPrice}
+              </span>
+            )}
+            {Boolean(selectedProduct.discountPercent) && (
+              <span style={{ backgroundColor: 'var(--accent, #b8963e)', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700, padding: '4px 8px', borderRadius: '4px', letterSpacing: '0.05em' }}>
+                {selectedProduct.discountPercent}% OFF
+              </span>
+            )}
+          </div>
 
           <div className={styles.detailOptionSection}>
             <label className={styles.detailOptionLabel}>COLOUR — {selectedColor.toUpperCase()}</label>
             <div className={styles.colorSelectorList}>
-              {[
-                { name: 'Ivory', hex: '#fbf6ee' },
-                { name: 'Maroon', hex: '#6b1929' },
-                { name: 'Gold', hex: '#b8963e' },
-                { name: 'Navy', hex: '#1a2a3e' },
-                { name: 'Rose', hex: '#e8c9b2' }
-              ].map((color) => (
+              {(selectedProduct.colors && selectedProduct.colors.length > 0
+                ? selectedProduct.colors.filter(c => c.inStock !== false)
+                : [
+                    { name: 'Emerald Green', hex: '#046A38' },
+                    { name: 'Royal Maroon', hex: '#800000' },
+                    { name: 'Dusty Rose', hex: '#D8A7B1' }
+                  ]
+              ).map((color) => (
                 <button
                   key={color.name}
-                  className={`${styles.colorCircle} ${selectedColor === color.name ? styles.colorCircleActive : ''}`}
+                  className={`${styles.colorCircle} ${selectedColor.toLowerCase() === color.name.toLowerCase() ? styles.colorCircleActive : ''}`}
                   style={{ backgroundColor: color.hex }}
                   onClick={() => setSelectedColor(color.name)}
                   title={color.name}
