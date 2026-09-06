@@ -86,13 +86,7 @@ function mapProductItem(item: any): Product {
   const origPriceNum = item.originalPrice ? (typeof item.originalPrice === 'number' ? item.originalPrice : parseFloat(String(item.originalPrice).replace(/[^\d.]/g, ''))) : Math.round(priceNum * 1.25);
   const discPct = item.discountPercent !== undefined ? item.discountPercent : (origPriceNum > priceNum ? Math.round(((origPriceNum - priceNum) / origPriceNum) * 100) : 0);
   
-  const colorsList: ColorOption[] = Array.isArray(item.colors) && item.colors.length > 0
-    ? item.colors
-    : [
-        { name: 'Emerald Green', hex: '#046A38', inStock: true },
-        { name: 'Royal Maroon', hex: '#800000', inStock: true },
-        { name: 'Dusty Rose', hex: '#D8A7B1', inStock: true }
-      ];
+  const colorsList: ColorOption[] = Array.isArray(item.colors) ? item.colors : [];
 
   return {
     id: item._id || item.id,

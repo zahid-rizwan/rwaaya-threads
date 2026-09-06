@@ -307,28 +307,23 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          <div className={styles.detailOptionSection}>
-            <label className={styles.detailOptionLabel}>COLOUR — {selectedColor.toUpperCase()}</label>
-            <div className={styles.colorSelectorList}>
-              {(selectedProduct.colors && selectedProduct.colors.length > 0
-                ? selectedProduct.colors.filter(c => c.inStock !== false)
-                : [
-                    { name: 'Emerald Green', hex: '#046A38' },
-                    { name: 'Royal Maroon', hex: '#800000' },
-                    { name: 'Dusty Rose', hex: '#D8A7B1' }
-                  ]
-              ).map((color) => (
-                <button
-                  key={color.name}
-                  className={`${styles.colorCircle} ${selectedColor.toLowerCase() === color.name.toLowerCase() ? styles.colorCircleActive : ''}`}
-                  style={{ backgroundColor: color.hex }}
-                  onClick={() => setSelectedColor(color.name)}
-                  title={color.name}
-                  aria-label={`Select color ${color.name}`}
-                />
-              ))}
+          {selectedProduct.colors && selectedProduct.colors.filter(c => c.inStock !== false).length > 0 && (
+            <div className={styles.detailOptionSection}>
+              <label className={styles.detailOptionLabel}>COLOUR — {selectedColor.toUpperCase()}</label>
+              <div className={styles.colorSelectorList}>
+                {selectedProduct.colors.filter(c => c.inStock !== false).map((color) => (
+                  <button
+                    key={color.name}
+                    className={`${styles.colorCircle} ${selectedColor.toLowerCase() === color.name.toLowerCase() ? styles.colorCircleActive : ''}`}
+                    style={{ backgroundColor: color.hex }}
+                    onClick={() => setSelectedColor(color.name)}
+                    title={color.name}
+                    aria-label={`Select color ${color.name}`}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className={styles.detailOptionSection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
