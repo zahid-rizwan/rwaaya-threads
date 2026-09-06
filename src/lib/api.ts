@@ -44,15 +44,29 @@ export interface CartData {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
 
-function resolveCategoryName(cat: any, tag: string): string {
-  if (cat && typeof cat === 'object' && cat.name) return cat.name;
-  if (cat && typeof cat === 'string' && isNaN(Number(cat))) return cat;
+function resolveCategoryName(cat: any, tag?: string): string {
+  // 1. Prioritize product tag if provided
   const t = (tag || '').toLowerCase();
-  const c = String(cat || '');
-  if (t === 'coords' || c === '2') return 'Co-Ord Set';
-  if (t === 'party' || c === '3') return 'Party Wear';
-  if (t === 'hampers' || c === '4') return 'Gift Hamper';
-  if (t === 'suits' || c === '1') return 'Pakistani Suit';
+  if (t === 'party') return 'Party Wear';
+  if (t === 'coords') return 'Co-Ord Set';
+  if (t === 'hampers') return 'Gift Hamper';
+  if (t === 'suits') return 'Pakistani Suit';
+
+  // 2. Check category object if populated from database
+  if (cat && typeof cat === 'object' && cat.name) return cat.name;
+
+  // 3. Check numeric category ID or category slug string
+  const c = String(cat || '').toLowerCase();
+  if (c === '3' || c === 'party') return 'Party Wear';
+  if (c === '2' || c === 'coords') return 'Co-Ord Set';
+  if (c === '4' || c === 'hampers') return 'Gift Hamper';
+  if (c === '1' || c === 'suits') return 'Pakistani Suit';
+
+  // 4. If cat is a custom non-ObjectId category string (not raw Mongo ObjectId)
+  if (typeof cat === 'string' && cat.trim().length > 0 && !cat.match(/^[0-9a-fA-F]{24}$/) && isNaN(Number(cat))) {
+    return cat;
+  }
+
   return 'Pakistani Suit';
 }
 
