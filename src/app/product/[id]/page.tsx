@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import styles from '@/app/page.module.css';
 
 import { getProductById, getProducts, fetchCart, addCartItem, Product } from '@/lib/api';
+import { animateFlyToCart } from '@/lib/flyToCart';
 
 interface Testimonial {
   text: string;
@@ -101,27 +102,18 @@ export default function ProductDetailPage() {
     { title: "Gift Hampers", subtitle: "EXPLORE COLLECTION", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", tag: "hampers" }
   ];
 
-  const addToBag = (productId: string | number) => {
+  const addToBag = (productId: string | number, eventOrElem?: React.MouseEvent | HTMLElement, imgSrc?: string) => {
     addCartItem(String(productId), selectedSize, productQuantity, selectedColor);
     setCartCount(prev => prev + productQuantity);
-    const alertBox = document.createElement('div');
-    alertBox.style.position = 'fixed';
-    alertBox.style.bottom = '20px';
-    alertBox.style.right = '20px';
-    alertBox.style.backgroundColor = '#6b1929';
-    alertBox.style.color = '#fffdf8';
-    alertBox.style.padding = '12px 24px';
-    alertBox.style.borderRadius = '4px';
-    alertBox.style.zIndex = '1000';
-    alertBox.style.fontFamily = 'var(--font-sans)';
-    alertBox.style.fontSize = '0.8rem';
-    alertBox.style.fontWeight = 'bold';
-    alertBox.style.letterSpacing = '0.1em';
-    alertBox.style.textTransform = 'uppercase';
-    alertBox.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    alertBox.innerText = 'Added to Bag';
-    document.body.appendChild(alertBox);
-    setTimeout(() => alertBox.remove(), 2500);
+    
+    let sourceElem: HTMLElement | null = null;
+    if (eventOrElem && 'currentTarget' in eventOrElem) {
+      sourceElem = eventOrElem.currentTarget as HTMLElement;
+    } else if (eventOrElem instanceof HTMLElement) {
+      sourceElem = eventOrElem;
+    }
+    
+    animateFlyToCart(sourceElem, imgSrc || selectedProduct?.image);
   };
 
   const toggleWishlist = (productId: string | number) => {
@@ -243,35 +235,6 @@ export default function ProductDetailPage() {
             </svg>
           </button>
 
-          <button 
-            className={styles.iconButton} 
-            aria-label="Shopping Bag"
-            onClick={() => router.push('/cart')}
-            style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
-              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
-            </svg>
-            <span style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-6px',
-              backgroundColor: '#6b1929',
-              color: '#ffffff',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1.5px solid #fff'
-            }}>
-              {cartCount}
-            </span>
-          </button>
         </div>
       </header>
 
@@ -398,11 +361,9 @@ export default function ProductDetailPage() {
                 cursor: isCurrentSizeOutOfStock ? 'not-allowed' : 'pointer',
                 backgroundColor: isCurrentSizeOutOfStock ? 'var(--text-muted, #777)' : undefined
               }}
-              onClick={() => {
+              onClick={(e) => {
                 if (!isCurrentSizeOutOfStock) {
-                  for(let i=0; i<productQuantity; i++) {
-                    addToBag(selectedProduct.id);
-                  }
+                  addToBag(selectedProduct.id, e, selectedProduct.image);
                 }
               }}
             >
@@ -692,14 +653,16 @@ export default function ProductDetailPage() {
         </button>
 
         <button 
+          id="bottom-cart-icon"
+          data-bottom-cart="true"
           type="button"
           onClick={() => router.push('/cart')} 
           className={styles.bottomNavItem}
         >
           <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
-              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z" className="bag-body-path"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2" className="bag-handle-path"></path>
             </svg>
             {cartCount > 0 && <span className={styles.bottomNavBadge}>{cartCount}</span>}
           </div>

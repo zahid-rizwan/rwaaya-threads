@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Brand Color Palette */
   --background: #f7efe3;      /* Luxury Cream Base */
@@ -112,4 +116,41 @@ button {
   content: '✦';
   color: var(--accent-light);
   font-size: 1.5rem;
+}
+
+/* Classic Clean Shopping Bag Handle Open & Snap-Shut Animations */
+.bag-handle-path {
+  transform-origin: 12px 8px;
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bag-body-path {
+  transform-origin: center center;
+  transition: transform 0.28s ease;
+}
+
+/* OPEN STATE: Handle lifts UP wide to open the shopping bag mouth */
+.bag-lid-open .bag-handle-path {
+  transform: translateY(-6px) scaleY(1.4) scaleX(1.15) !important;
+  stroke: var(--accent) !important;
+}
+
+.bag-lid-open .bag-body-path {
+  transform: scale(1.15) translateY(1px) !important;
+}
+
+.bag-lid-open svg {
+  color: var(--primary) !important;
+}
+
+/* SNAP SHUT STATE: Elastic Bounce Pop */
+@keyframes cartPopElastic {
+  0% { transform: scale(1.25) rotate(0deg); }
+  35% { transform: scale(0.85) rotate(-8deg); }
+  70% { transform: scale(1.18) rotate(4deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.bag-lid-close {
+  animation: cartPopElastic 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
 }

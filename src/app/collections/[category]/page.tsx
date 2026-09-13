@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import styles from '@/app/page.module.css';
 
-import { getProducts, fetchCart, Product } from '@/lib/api';
+import { getProducts, fetchCart, addCartItem, Product } from '@/lib/api';
+import { animateFlyToCart } from '@/lib/flyToCart';
 import ProductSkeletonGrid from '@/components/ProductSkeletonGrid';
 
 const categoryBanners: Record<string, { title: string; subtitle: string; description: string; image: string }> = {
@@ -110,26 +111,18 @@ export default function CategoryPage() {
     { title: "Gift Hampers", subtitle: "EXPLORE COLLECTION", image: "/assets/bfbf18493c6f15c8b582f56fad304f8de3f26c0f.png", tag: "hampers" }
   ];
 
-  const addToBag = (productId: string | number) => {
+  const addToBag = (productId: string | number, eventOrElem?: React.MouseEvent | HTMLElement, imgSrc?: string) => {
+    addCartItem(String(productId), 'M', 1);
     setCartCount(prev => prev + 1);
-    const alertBox = document.createElement('div');
-    alertBox.style.position = 'fixed';
-    alertBox.style.bottom = '20px';
-    alertBox.style.right = '20px';
-    alertBox.style.backgroundColor = '#6b1929';
-    alertBox.style.color = '#fffdf8';
-    alertBox.style.padding = '12px 24px';
-    alertBox.style.borderRadius = '4px';
-    alertBox.style.zIndex = '1000';
-    alertBox.style.fontFamily = 'var(--font-sans)';
-    alertBox.style.fontSize = '0.8rem';
-    alertBox.style.fontWeight = 'bold';
-    alertBox.style.letterSpacing = '0.1em';
-    alertBox.style.textTransform = 'uppercase';
-    alertBox.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-    alertBox.innerText = 'Added to Bag';
-    document.body.appendChild(alertBox);
-    setTimeout(() => alertBox.remove(), 2500);
+    
+    let sourceElem: HTMLElement | null = null;
+    if (eventOrElem && 'currentTarget' in eventOrElem) {
+      sourceElem = eventOrElem.currentTarget as HTMLElement;
+    } else if (eventOrElem instanceof HTMLElement) {
+      sourceElem = eventOrElem;
+    }
+    
+    animateFlyToCart(sourceElem, imgSrc);
   };
 
   const toggleWishlist = (productId: string | number) => {
@@ -180,35 +173,6 @@ export default function CategoryPage() {
             </svg>
           </button>
 
-          <button 
-            className={styles.iconButton} 
-            aria-label="Shopping Bag"
-            onClick={() => router.push('/cart')}
-            style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
-              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
-            </svg>
-            <span style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-6px',
-              backgroundColor: '#6b1929',
-              color: '#ffffff',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1.5px solid #fff'
-            }}>
-              {cartCount}
-            </span>
-          </button>
         </div>
       </header>
 
@@ -291,7 +255,7 @@ export default function CategoryPage() {
         ) : (
           <div className={styles.productsGrid}>
             {filteredProducts.map((product) => (
-              <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
+              <div key={product.id} className={styles.productCard} data-product-card onClick={() => router.push(`/product/${product.id}`)}>
                 <div className={styles.productImageWrapper}>
                   <Image src={product.image} alt={product.name} fill className={styles.productImage} />
                   {product.badge && <span className={styles.productBadge}>{product.badge}</span>}
@@ -300,7 +264,7 @@ export default function CategoryPage() {
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
                   </button>
-                  <button className={styles.addBagHover} onClick={(e) => { e.stopPropagation(); addToBag(product.id); }}>
+                  <button className={styles.addBagHover} onClick={(e) => { e.stopPropagation(); addToBag(product.id, e, product.image); }}>
                     <span className={styles.addBagText}>Add to Bag</span>
                   </button>
                 </div>
@@ -495,14 +459,16 @@ export default function CategoryPage() {
         </button>
 
         <button 
+          id="bottom-cart-icon"
+          data-bottom-cart="true"
           type="button"
           onClick={() => router.push('/cart')} 
           className={styles.bottomNavItem}
         >
           <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
-              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z" className="bag-body-path"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2" className="bag-handle-path"></path>
             </svg>
             {cartCount > 0 && <span className={styles.bottomNavBadge}>{cartCount}</span>}
           </div>
