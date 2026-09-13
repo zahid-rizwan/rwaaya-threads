@@ -62,9 +62,17 @@ export default function AddProductPage() {
       // 1. Upload the optimized WebP image
       const imageUrl = await uploadImage(croppedBlob);
 
+      const tagMap: Record<string, string> = {
+        'Pakistani Suit': 'suits',
+        'Lehenga': 'party',
+        'Saree': 'party',
+        'Kurta Set': 'coords'
+      };
+
       // 2. Create the product
       await createProduct({
         ...formData,
+        tag: tagMap[formData.category] || 'suits',
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         images: [imageUrl]
