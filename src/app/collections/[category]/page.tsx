@@ -67,7 +67,9 @@ export default function CategoryPage() {
   useEffect(() => {
     setLoadingProducts(true);
     getProducts(activeCategory).then((data) => {
-      setProductsList(data || []);
+      if (Array.isArray(data) && data.length > 0) {
+        setProductsList(data);
+      }
       setLoadingProducts(false);
     }).catch(() => {
       setLoadingProducts(false);
