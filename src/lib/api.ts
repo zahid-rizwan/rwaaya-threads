@@ -113,7 +113,7 @@ function mapProductItem(item: any): Product {
 export async function getProducts(tag?: string): Promise<Product[]> {
   try {
     const url = tag && tag !== 'all' ? `${API_BASE_URL}/products?tag=${tag}` : `${API_BASE_URL}/products`;
-    const res = await fetch(url, { cache: 'no-store' });
+    const res = await fetch(url, { next: { revalidate: 10 } });
     
     if (res.ok) {
       const payload = await res.json();
@@ -132,7 +132,7 @@ export async function getProducts(tag?: string): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/products/${id}`, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE_URL}/products/${id}`, { next: { revalidate: 10 } });
     if (res.ok) {
       const payload = await res.json();
       const item = (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
