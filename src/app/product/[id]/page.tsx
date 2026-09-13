@@ -146,10 +146,33 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className={styles.pageContainer} style={{ minHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--accent)' }}>Loading Atelier Details...</p>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      <div className={styles.pageContainer}>
+        <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 24px', width: '100%' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '40px' }}>
+            <div className={styles.skeletonCard} style={{ borderRadius: '16px', height: '520px' }}>
+              <div className={styles.skeletonImageWrapper} style={{ height: '100%', paddingTop: 0 }}>
+                <div className={styles.skeletonShimmer} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
+              <div className={styles.skeletonCategory} style={{ width: '30%', height: '14px' }}>
+                <div className={styles.skeletonShimmer} />
+              </div>
+              <div className={styles.skeletonTitle} style={{ width: '80%', height: '32px' }}>
+                <div className={styles.skeletonShimmer} />
+              </div>
+              <div className={styles.skeletonPrice} style={{ width: '40%', height: '24px' }}>
+                <div className={styles.skeletonShimmer} />
+              </div>
+              <div style={{ width: '100%', height: '100px', borderRadius: '8px', background: '#ebdcc9', position: 'relative', overflow: 'hidden', marginTop: '10px' }}>
+                <div className={styles.skeletonShimmer} />
+              </div>
+              <div style={{ width: '100%', height: '50px', borderRadius: '30px', background: '#e2ceb5', position: 'relative', overflow: 'hidden', marginTop: '10px' }}>
+                <div className={styles.skeletonShimmer} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

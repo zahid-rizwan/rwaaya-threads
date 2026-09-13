@@ -7,7 +7,7 @@ interface ProductSkeletonGridProps {
   count?: number;
 }
 
-export default function ProductSkeletonGrid({ count = 4 }: ProductSkeletonGridProps) {
+export default function ProductSkeletonGrid({ count = 8 }: ProductSkeletonGridProps) {
   return (
     <div className={styles.productsGrid}>
       {Array.from({ length: count }).map((_, index) => (
@@ -16,9 +16,15 @@ export default function ProductSkeletonGrid({ count = 4 }: ProductSkeletonGridPr
             <div className={styles.skeletonShimmer} />
           </div>
           <div className={styles.skeletonInfo}>
-            <div className={styles.skeletonCategory} />
-            <div className={styles.skeletonTitle} />
-            <div className={styles.skeletonPrice} />
+            <div className={styles.skeletonCategory}>
+              <div className={styles.skeletonShimmer} />
+            </div>
+            <div className={styles.skeletonTitle}>
+              <div className={styles.skeletonShimmer} />
+            </div>
+            <div className={styles.skeletonPrice}>
+              <div className={styles.skeletonShimmer} />
+            </div>
           </div>
         </div>
       ))}
