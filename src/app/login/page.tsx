@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { loginUser, registerUser } from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { loginUser, registerUser, mergeGuestCart } from '@/lib/api';
 import { syncWishlistOnLogin } from '@/lib/wishlist';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get('redirect') || '/profile';
+  const isCheckoutRedirect = redirectTarget === '/checkout';
+
   const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
   const [name, setName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -23,14 +27,12 @@ export default function LoginPage() {
     try {
       if (isLoginMode) {
         const res = await loginUser(email, password);
-        if (res && res.token) {
+        if (res && res.token && res.user) {
           localStorage.setItem('riwaaya_token', res.token);
-          if (res.user) {
-            localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
-          }
-          // Myntra-style Wishlist Sync: merge guest local wishlist items with backend user account
+          localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
+          await mergeGuestCart();
           await syncWishlistOnLogin(res.token);
-          router.push('/profile');
+          router.push(redirectTarget);
         } else {
           setErrorMsg(res?.message || 'Invalid email or password. Please try again.');
         }
@@ -41,13 +43,12 @@ export default function LoginPage() {
           return;
         }
         const res = await registerUser(name, email, password);
-        if (res && res.token) {
+        if (res && res.token && res.user) {
           localStorage.setItem('riwaaya_token', res.token);
-          if (res.user) {
-            localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
-          }
+          localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
+          await mergeGuestCart();
           await syncWishlistOnLogin(res.token);
-          router.push('/profile');
+          router.push(redirectTarget);
         } else {
           setErrorMsg(res?.message || 'Registration failed. Please check details.');
         }
@@ -58,6 +59,110 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  return (
+    <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 sm:p-10 border border-[#b8963e]/30 shadow-xl text-center max-w-md w-full mx-auto">
+      <div className="w-12 h-12 rounded-full bg-[#6b1929]/10 border border-[#6b1929]/20 flex items-center justify-center mx-auto mb-4 text-[#6b1929]">
+        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+
+      <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-1">
+        {isLoginMode ? 'Welcome Back' : 'Create Account'}
+      </h1>
+      <p className="text-xs text-stone-500 mb-4 uppercase tracking-widest font-semibold">
+        {isLoginMode ? 'Sign in to access saved items & orders' : 'Join the Atelier Luxury Circle'}
+      </p>
+
+      {isCheckoutRedirect && (
+        <div className="mb-4 p-3 bg-[#f7efe3] border border-[#b8963e]/40 text-[#6b1929] text-xs rounded-xl font-semibold flex items-center justify-center gap-2">
+          <span>✦ Please sign in or register to complete your order checkout.</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+          {errorMsg}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
+        {!isLoginMode && (
+          <div>
+            <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
+              Full Name
+            </label>
+            <input 
+              type="text" 
+              required 
+              value={name} 
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Mariam Khan"
+              className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
+            Email Address
+          </label>
+          <input 
+            type="email" 
+            required 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@example.com"
+            className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
+            Password
+          </label>
+          <input 
+            type="password" 
+            required 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={loading}
+          className="mt-2 w-full py-3.5 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase rounded-full shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+        >
+          {loading ? 'Processing...' : (isLoginMode ? 'SIGN IN' : 'REGISTER')}
+        </button>
+      </form>
+
+      <div className="mt-6 pt-6 border-t border-[#b8963e]/20 text-center">
+        <p className="text-xs text-stone-600 font-medium">
+          {isLoginMode ? "Don't have an account?" : "Already registered?"}{' '}
+          <button 
+            type="button" 
+            onClick={() => {
+              setIsLoginMode(!isLoginMode);
+              setErrorMsg('');
+            }}
+            className="text-[#6b1929] font-bold underline hover:text-[#8b2336] transition-colors ml-1"
+          >
+            {isLoginMode ? 'Create one now' : 'Sign in here'}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-[#fbf6ee] text-[#2c2c2c] flex flex-col justify-between">
@@ -83,97 +188,13 @@ export default function LoginPage() {
 
       {/* Main Content */}
       <main className="max-w-md w-full mx-auto px-4 py-12 flex-1 flex flex-col justify-center">
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 sm:p-10 border border-[#b8963e]/30 shadow-xl text-center">
-          <div className="w-12 h-12 rounded-full bg-[#6b1929]/10 border border-[#6b1929]/20 flex items-center justify-center mx-auto mb-4 text-[#6b1929]">
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
+        <Suspense fallback={
+          <div className="p-8 text-center bg-white rounded-3xl border border-[#b8963e]/20">
+            <p className="text-xs font-bold text-stone-500 uppercase tracking-widest animate-pulse">Loading Atelier Portal...</p>
           </div>
-
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-1">
-            {isLoginMode ? 'Welcome Back' : 'Create Account'}
-          </h1>
-          <p className="text-xs text-stone-500 mb-6 uppercase tracking-widest font-semibold">
-            {isLoginMode ? 'Sign in to access saved items & orders' : 'Join the Atelier Luxury Circle'}
-          </p>
-
-          {errorMsg && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
-              {errorMsg}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
-            {!isLoginMode && (
-              <div>
-                <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
-                  Full Name
-                </label>
-                <input 
-                  type="text" 
-                  required 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Mariam Khan"
-                  className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
-                Email Address
-              </label>
-              <input 
-                type="email" 
-                required 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
-                Password
-              </label>
-              <input 
-                type="password" 
-                required 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="mt-2 w-full py-3.5 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase rounded-full shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
-            >
-              {loading ? 'Processing...' : (isLoginMode ? 'SIGN IN' : 'REGISTER')}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-[#b8963e]/20 text-center">
-            <p className="text-xs text-stone-600 font-medium">
-              {isLoginMode ? "Don't have an account?" : "Already registered?"}{' '}
-              <button 
-                type="button" 
-                onClick={() => {
-                  setIsLoginMode(!isLoginMode);
-                  setErrorMsg('');
-                }}
-                className="text-[#6b1929] font-bold underline hover:text-[#8b2336] transition-colors ml-1"
-              >
-                {isLoginMode ? 'Create one now' : 'Sign in here'}
-              </button>
-            </p>
-          </div>
-        </div>
+        }>
+          <LoginForm />
+        </Suspense>
       </main>
 
       {/* Footer */}

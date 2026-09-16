@@ -423,17 +423,17 @@ export default function ProductDetailPage() {
 
           {/* Quantity & Add to Bag Row */}
           <div className="flex items-center gap-3 mb-6 w-full">
-            <div className="flex items-center border border-[#b8963e]/40 rounded-full bg-white h-12 px-1 flex-shrink-0">
+            <div className="flex items-center border border-[#b8963e]/40 rounded-md bg-white h-12 px-1 flex-shrink-0">
               <button 
                 onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} 
-                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold text-stone-700 hover:bg-[#b8963e]/10 hover:text-[#6b1929] transition-colors"
+                className="w-9 h-9 rounded-md flex items-center justify-center text-lg font-bold text-stone-700 hover:bg-[#b8963e]/10 hover:text-[#6b1929] transition-colors"
               >
                 -
               </button>
               <span className="w-8 text-center font-bold text-sm text-stone-900">{productQuantity}</span>
               <button 
                 onClick={() => setProductQuantity(prev => prev + 1)} 
-                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold text-stone-700 hover:bg-[#b8963e]/10 hover:text-[#6b1929] transition-colors"
+                className="w-9 h-9 rounded-md flex items-center justify-center text-lg font-bold text-stone-700 hover:bg-[#b8963e]/10 hover:text-[#6b1929] transition-colors"
               >
                 +
               </button>
@@ -441,7 +441,7 @@ export default function ProductDetailPage() {
 
             <button 
               disabled={isCurrentSizeOutOfStock}
-              className="flex-1 h-12 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs md:text-sm tracking-widest uppercase rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-400"
+              className="flex-1 h-12 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs md:text-sm tracking-widest uppercase rounded-md shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-400"
               onClick={(e) => {
                 if (!isCurrentSizeOutOfStock) {
                   addToBag(selectedProduct.id, e, selectedProduct.image);
@@ -453,7 +453,7 @@ export default function ProductDetailPage() {
 
             <button
               onClick={() => toggleWishlistStore(String(selectedProduct.id))}
-              className={`w-12 h-12 rounded-full border flex flex-shrink-0 items-center justify-center transition-all ${
+              className={`w-12 h-12 rounded-md border flex flex-shrink-0 items-center justify-center transition-all ${
                 wishlist.includes(String(selectedProduct.id))
                   ? 'bg-[#6b1929] border-[#6b1929] text-white shadow-md'
                   : 'bg-white border-[#b8963e]/40 text-stone-700 hover:text-[#6b1929] hover:border-[#6b1929]'

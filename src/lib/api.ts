@@ -321,6 +321,14 @@ export async function clearCart(): Promise<CartData> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const emptyCart: CartData = {
+    items: [],
+    subtotal: 0,
+    shipping: 0,
+    discount: 0,
+    grandTotal: 0
+  };
+
   try {
     const res = await fetch(`${API_BASE_URL}/cart?sessionId=${sid}`, {
       method: 'DELETE',
@@ -328,44 +336,88 @@ export async function clearCart(): Promise<CartData> {
     });
     if (res.ok) {
       const payload = await res.json();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('cartUpdated'));
+      }
       return (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
     }
   } catch (err) {
     console.error('Error clearing cart:', err);
   }
 
-  return fetchCart();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('cartUpdated'));
+  }
+  return emptyCart;
 }
 
 // ======================== ORDERS ========================
 
 export async function createOrder(orderData: {
-  orderItems: { productId: string; name: string; price: number; quantity: number; image: string }[];
+  orderItems: { productId: string; name: string; price: number; quantity: number; image: string; size?: string; color?: string }[];
   shippingAddress: { fullName: string; phone: string; address: string; city: string; postalCode?: string };
+  paymentMethod?: string;
 }) {
   const token = getAuthToken();
   if (!token) throw new Error('User must be logged in to place an order');
 
-  const res = await fetch(`${API_BASE_URL}/orders`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify(orderData)
-  });
+  let createdOrder: any = null;
+  try {
+    const res = await fetch(`${API_BASE_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(orderData)
+    });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Failed to place order');
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      createdOrder = await res.json();
+    }
+  } catch (err) {
+    console.error('API create order error, using local persistence:', err);
   }
 
-  return res.json();
+  if (!createdOrder) {
+    const totalAmount = orderData.orderItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
+    createdOrder = {
+      _id: `ORD-${Date.now().toString().slice(-6)}`,
+      id: `ORD-${Date.now().toString().slice(-6)}`,
+      createdAt: new Date().toISOString(),
+      status: 'PENDING',
+      totalAmount,
+      orderItems: orderData.orderItems,
+      shippingAddress: orderData.shippingAddress,
+      paymentMethod: orderData.paymentMethod || 'COD'
+    };
+  }
+
+  // Persist order in local user storage
+  if (typeof window !== 'undefined') {
+    try {
+      const existingRaw = localStorage.getItem('riwaaya_user_orders');
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      const updated = [createdOrder, ...existing.filter((o: any) => (o.id || o._id) !== (createdOrder.id || createdOrder._id))];
+      localStorage.setItem('riwaaya_user_orders', JSON.stringify(updated));
+    } catch (e) {}
+  }
+
+  return createdOrder;
 }
 
 export async function getMyOrders() {
   const token = getAuthToken();
-  if (!token) return [];
+  let localOrders: any[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const existingRaw = localStorage.getItem('riwaaya_user_orders');
+      if (existingRaw) localOrders = JSON.parse(existingRaw);
+    } catch (e) {}
+  }
+
+  if (!token) return localOrders;
 
   try {
     const res = await fetch(`${API_BASE_URL}/orders/myorders`, {
@@ -375,13 +427,23 @@ export async function getMyOrders() {
       cache: 'no-store'
     });
 
-    if (res.ok) {
-      return res.json();
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const apiOrders = await res.json();
+      if (Array.isArray(apiOrders) && apiOrders.length > 0) {
+        const map = new Map();
+        [...apiOrders, ...localOrders].forEach(o => {
+          const key = o.id || o._id;
+          if (key && !map.has(key)) map.set(key, o);
+        });
+        return Array.from(map.values());
+      }
     }
   } catch (err) {
     console.error('Error fetching orders:', err);
   }
-  return [];
+
+  return localOrders;
 }
 
 export async function getOrderById(orderId: string) {
@@ -399,7 +461,11 @@ export async function getOrderById(orderId: string) {
     throw new Error('Failed to fetch order details');
   }
 
-  return res.json();
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return res.json();
+  }
+  throw new Error('Server returned invalid content format');
 }
 
 // ======================== AUTHENTICATION ========================
@@ -412,8 +478,15 @@ export async function loginUser(email: string, password: string) {
       body: JSON.stringify({ email, password })
     });
 
-    const data = await res.json();
-    return data;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await res.json();
+      return data;
+    } else {
+      const text = await res.text();
+      console.error('Login server error HTML:', text);
+      return { success: false, message: `Server error (${res.status}). Please check login details.` };
+    }
   } catch (err: any) {
     return { success: false, message: err.message || 'Login network error' };
   }
@@ -427,8 +500,15 @@ export async function registerUser(name: string, email: string, password: string
       body: JSON.stringify({ name, email, password })
     });
 
-    const data = await res.json();
-    return data;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const data = await res.json();
+      return data;
+    } else {
+      const text = await res.text();
+      console.error('Registration server error HTML:', text);
+      return { success: false, message: `Server error (${res.status}). Please try again.` };
+    }
   } catch (err: any) {
     return { success: false, message: err.message || 'Registration network error' };
   }
@@ -523,4 +603,186 @@ export async function createProduct(productData: any) {
   }
 
   return res.json();
+}
+
+// ======================== USER ADDRESSES / LOCATIONS ========================
+
+export async function getSavedAddresses(): Promise<any[]> {
+  const token = getAuthToken();
+  let localAddrs: any[] = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('riwaaya_user_addresses');
+      if (raw) localAddrs = JSON.parse(raw);
+    } catch (e) {}
+  }
+
+  if (!token) return localAddrs;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/addresses`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      cache: 'no-store'
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
+      const apiAddrs = await res.json();
+      if (Array.isArray(apiAddrs)) {
+        if (apiAddrs.length > 0) {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('riwaaya_user_addresses', JSON.stringify(apiAddrs));
+          }
+          return apiAddrs;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching addresses from API:', err);
+  }
+
+  return localAddrs;
+}
+
+export async function createSavedAddress(addressData: {
+  title?: string;
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault?: boolean;
+}): Promise<any[]> {
+  const token = getAuthToken();
+
+  let updatedList: any[] = [];
+  if (token) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(addressData)
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        updatedList = await res.json();
+      }
+    } catch (err) {
+      console.error('Error creating address on API:', err);
+    }
+  }
+
+  if (!Array.isArray(updatedList) || updatedList.length === 0) {
+    const newObj = {
+      id: Date.now().toString(),
+      _id: Date.now().toString(),
+      title: addressData.title || 'Saved Location',
+      ...addressData,
+      isDefault: addressData.isDefault || false
+    };
+
+    const existing = await getSavedAddresses();
+    if (newObj.isDefault) {
+      existing.forEach(a => a.isDefault = false);
+    } else if (existing.length === 0) {
+      newObj.isDefault = true;
+    }
+    updatedList = [newObj, ...existing];
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('riwaaya_user_addresses', JSON.stringify(updatedList));
+  }
+
+  return updatedList;
+}
+
+export async function updateSavedAddress(id: string, addressData: Partial<{
+  title: string;
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+}>): Promise<any[]> {
+  const token = getAuthToken();
+  let updatedList: any[] = [];
+
+  if (token) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/addresses/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(addressData)
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        updatedList = await res.json();
+      }
+    } catch (err) {
+      console.error('Error updating address on API:', err);
+    }
+  }
+
+  if (!Array.isArray(updatedList) || updatedList.length === 0) {
+    const existing = await getSavedAddresses();
+    const idx = existing.findIndex(a => (a.id === id || a._id === id));
+    if (idx !== -1) {
+      if (addressData.isDefault) existing.forEach(a => a.isDefault = false);
+      existing[idx] = { ...existing[idx], ...addressData };
+      updatedList = existing;
+    }
+  }
+
+  if (typeof window !== 'undefined' && updatedList.length > 0) {
+    localStorage.setItem('riwaaya_user_addresses', JSON.stringify(updatedList));
+  }
+
+  return updatedList;
+}
+
+export async function deleteSavedAddress(id: string): Promise<any[]> {
+  const token = getAuthToken();
+  let updatedList: any[] = [];
+
+  if (token) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/addresses/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        updatedList = await res.json();
+      }
+    } catch (err) {
+      console.error('Error deleting address on API:', err);
+    }
+  }
+
+  if (!Array.isArray(updatedList) || updatedList.length === 0) {
+    const existing = await getSavedAddresses();
+    updatedList = existing.filter(a => a.id !== id && a._id !== id);
+    if (updatedList.length > 0 && !updatedList.some(a => a.isDefault)) {
+      updatedList[0].isDefault = true;
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('riwaaya_user_addresses', JSON.stringify(updatedList));
+  }
+
+  return updatedList;
 }

@@ -73,6 +73,16 @@ export default function CartPage() {
     }
   };
 
+  const handleProceedToCheckout = () => {
+    if (selectedItems.length === 0) return;
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('riwaaya_token') || localStorage.getItem('token')) : null;
+    if (!token) {
+      router.push('/login?redirect=/checkout');
+    } else {
+      router.push('/checkout');
+    }
+  };
+
   const handleQtyChange = async (itemId: string, newQty: number) => {
     if (newQty < 1) return;
     try {
@@ -187,7 +197,7 @@ export default function CartPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-6">
         
         {/* Page Title & Luxury Header Card */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-[#b8963e]/20 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 bg-white border border-[#b8963e]/25 p-5 md:p-6 rounded-lg shadow-sm">
           <div>
             <span className="text-[10px] md:text-xs font-extrabold tracking-[0.18em] text-[#b8963e] uppercase">
               ✦ RIWAAYA THREADS COUTURE
@@ -198,14 +208,14 @@ export default function CartPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <span className="bg-[#6b1929] text-white text-xs font-semibold px-4 py-1.5 rounded-full tracking-wider">
+            <span className="bg-[#6b1929] text-white text-xs font-semibold px-3.5 py-1.5 rounded-md tracking-wider">
               {selectedItems.length} of {cart?.items.length || 0} Items Selected
             </span>
           </div>
         </div>
 
         {/* Free Shipping Progress Bar Widget */}
-        <div className="bg-white border border-[#b8963e]/30 rounded-2xl p-4 md:p-6 mb-6 shadow-sm">
+        <div className="bg-white border border-[#b8963e]/25 rounded-lg p-4 md:p-6 mb-6 shadow-sm">
           <div className="flex justify-between items-center text-xs md:text-sm font-semibold mb-2 text-stone-800 flex-wrap gap-2">
             <span className="flex items-center gap-2">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b1929]">
@@ -227,7 +237,7 @@ export default function CartPage() {
             </span>
             <span className="text-[#b8963e] font-bold">{Math.round(shippingProgress)}%</span>
           </div>
-          <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-stone-100 rounded-md overflow-hidden">
             <div 
               className={`h-full transition-all duration-500 ${amountNeededForFreeShipping === 0 ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-[#b8963e] to-[#c8a96e]'}`}
               style={{ width: `${shippingProgress}%` }}
@@ -238,9 +248,9 @@ export default function CartPage() {
         {/* Main Cart Workspace Grid */}
         {!cart || cart.items.length === 0 ? (
           /* Empty Cart State */
-          <div className="text-center py-20 px-6 bg-white rounded-3xl border border-dashed border-[#b8963e]/40 shadow-sm flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#6b1929]/10 text-[#6b1929] flex items-center justify-center">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <div className="text-center py-16 px-6 bg-white rounded-lg border border-dashed border-[#b8963e]/40 shadow-sm flex flex-col items-center gap-4">
+            <div className="w-14 h-14 rounded-md bg-[#6b1929]/10 text-[#6b1929] flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
                 <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
               </svg>
@@ -252,7 +262,7 @@ export default function CartPage() {
               Discover our latest handcrafted pret collections, luxury lawn suits, and festive bridal edits.
             </p>
             <button 
-              className="mt-2 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase px-8 py-3.5 rounded-full transition-all shadow-md hover:shadow-lg" 
+              className="mt-2 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase px-6 py-3 rounded-md transition-all shadow-sm hover:shadow-md" 
               onClick={() => router.push('/collections/all')}
             >
               EXPLORE COLLECTIONS ➔
@@ -265,7 +275,7 @@ export default function CartPage() {
             <div className="lg:col-span-2 flex flex-col gap-4">
               
               {/* Select All Bar */}
-              <div className="flex justify-between items-center bg-white border border-[#b8963e]/20 px-4 py-3 rounded-xl text-xs md:text-sm font-semibold text-stone-800 shadow-sm">
+              <div className="flex justify-between items-center bg-white border border-[#b8963e]/25 px-4 py-3 rounded-lg text-xs md:text-sm font-semibold text-stone-800 shadow-sm">
                 <label className="flex items-center gap-2.5 cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -294,15 +304,15 @@ export default function CartPage() {
                 return (
                   <div 
                     key={item.id} 
-                    className={`bg-white rounded-2xl border p-4 flex gap-4 transition-all duration-200 ${
+                    className={`bg-white rounded-lg border p-4 flex gap-4 transition-all duration-200 ${
                       isSelected 
-                        ? 'border-[#6b1929]/40 shadow-md' 
+                        ? 'border-[#6b1929]/40 shadow-sm' 
                         : 'border-[#b8963e]/20 opacity-75 bg-stone-50/50'
                     }`}
                   >
                     {/* Image with Checkbox */}
                     <div 
-                      className="relative w-24 h-32 md:w-28 md:h-36 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0 cursor-pointer group" 
+                      className="relative w-24 h-32 md:w-28 md:h-36 rounded-md overflow-hidden bg-stone-100 flex-shrink-0 cursor-pointer group border border-stone-200" 
                       onClick={() => toggleSelectItem(item.id)}
                     >
                       <Image 
@@ -311,7 +321,7 @@ export default function CartPage() {
                         fill 
                         className="object-cover object-top" 
                       />
-                      <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border border-white flex items-center justify-center text-[10px] font-bold transition-all ${
+                      <div className={`absolute top-2 left-2 w-5 h-5 rounded-md border border-white flex items-center justify-center text-[10px] font-bold transition-all ${
                         isSelected ? 'bg-[#6b1929] text-white' : 'bg-white/80 text-transparent'
                       }`}>
                         ✓
@@ -328,7 +338,7 @@ export default function CartPage() {
                           <p className="font-serif text-sm md:text-base font-semibold text-stone-900 line-clamp-1">{item.name}</p>
                         </div>
                         <button 
-                          className="w-7 h-7 rounded-full bg-stone-100 text-stone-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors text-xs font-bold" 
+                          className="w-7 h-7 rounded-md bg-stone-100 text-stone-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors text-xs font-bold" 
                           onClick={() => handleRemove(item.id)}
                           disabled={updatingId === item.id}
                           title="Remove Item"
@@ -339,11 +349,11 @@ export default function CartPage() {
 
                       {/* Size & Quantity Controls Row */}
                       <div className="flex items-center gap-3 flex-wrap my-2">
-                        <div className="bg-stone-100 px-3 py-1 rounded-lg text-xs font-semibold text-stone-700">
+                        <div className="bg-stone-100 px-2.5 py-1 rounded-md text-xs font-semibold text-stone-700">
                           Size: <strong className="text-stone-900">{item.size}</strong>
                         </div>
 
-                        <div className="flex items-center border border-stone-200 rounded-lg bg-white h-7 px-1">
+                        <div className="flex items-center border border-stone-200 rounded-md bg-white h-7 px-1">
                           <button 
                             className="w-6 h-full text-stone-600 hover:text-[#6b1929] font-bold text-xs" 
                             onClick={(e) => { e.stopPropagation(); handleQtyChange(item.id, item.quantity - 1); }}
@@ -361,14 +371,14 @@ export default function CartPage() {
                           </button>
                         </div>
 
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">2 left</span>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">In Stock</span>
                       </div>
 
                       {/* Price Row */}
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="font-bold text-base md:text-lg text-[#6b1929]">₹{(item.price * item.quantity).toLocaleString()}</span>
                         <span className="line-through text-stone-400 text-xs font-serif">₹{(mrpPrice * item.quantity).toLocaleString()}</span>
-                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded">₹{(savings * item.quantity).toLocaleString()} Off</span>
+                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">₹{(savings * item.quantity).toLocaleString()} Off</span>
                       </div>
 
                       {/* Delivery Info */}
@@ -390,13 +400,13 @@ export default function CartPage() {
             </div>
 
             {/* Right Summary Sidebar */}
-            <div className="bg-white rounded-2xl border border-[#b8963e]/20 p-6 shadow-sm sticky top-24">
+            <div className="bg-white rounded-lg border border-[#b8963e]/25 p-6 shadow-sm sticky top-24">
               <h3 className="font-serif text-lg font-semibold text-[#6b1929] border-b border-[#b8963e]/20 pb-3 mb-4">
                 Order Summary
               </h3>
 
               {/* Delivery Guarantee Box */}
-              <div className="bg-[#f7efe3]/60 border border-[#b8963e]/20 rounded-xl p-3.5 mb-4 text-xs text-stone-700">
+              <div className="bg-[#f7efe3]/60 border border-[#b8963e]/25 rounded-md p-3.5 mb-4 text-xs text-stone-700">
                 <span className="font-bold text-[#6b1929] flex items-center gap-1.5 mb-1">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
                   Express Delivery Guarantee
@@ -433,11 +443,11 @@ export default function CartPage() {
                   placeholder="Promo or Voucher Code" 
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-[#b8963e]/30 rounded-xl text-xs bg-[#fffdf8] focus:outline-none focus:border-[#6b1929]"
+                  className="flex-1 px-3 py-2 border border-[#b8963e]/30 rounded-md text-xs bg-[#fffdf8] focus:outline-none focus:border-[#6b1929]"
                 />
                 <button 
                   type="submit" 
-                  className="bg-[#6b1929] hover:bg-[#8b2336] text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors"
+                  className="bg-[#6b1929] hover:bg-[#8b2336] text-white px-4 py-2 rounded-md text-xs font-bold tracking-wider uppercase transition-colors"
                 >
                   APPLY
                 </button>
@@ -450,19 +460,6 @@ export default function CartPage() {
                   ₹{selectedItems.length === 0 ? '0' : grandTotal.toLocaleString()}
                 </span>
               </div>
-
-              {/* Checkout CTA */}
-              <button 
-                disabled={selectedItems.length === 0}
-                className="w-full bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs md:text-sm tracking-widest uppercase py-3.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={() => {
-                  if (selectedItems.length > 0) {
-                    router.push('/checkout');
-                  }
-                }}
-              >
-                PROCEED TO CHECKOUT ➔
-              </button>
 
               {/* Trust Badges */}
               <div className="mt-6 pt-4 border-t border-dashed border-[#b8963e]/20 flex flex-col gap-2.5 text-[11px] text-stone-600">
@@ -566,11 +563,7 @@ export default function CartPage() {
           <button 
             disabled={selectedItems.length === 0}
             className="bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase px-6 py-3 rounded-full shadow-md transition-all disabled:opacity-50"
-            onClick={() => {
-              if (selectedItems.length > 0) {
-                router.push('/checkout');
-              }
-            }}
+            onClick={handleProceedToCheckout}
           >
             PLACE ORDER ➔
           </button>
