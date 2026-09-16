@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import styles from '@/app/page.module.css';
 import { fetchCart, updateCartItemQty, removeCartItem, CartData } from '@/lib/api';
 
 export default function CartPage() {
@@ -16,6 +15,19 @@ export default function CartPage() {
   const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [deliveryDateRange, setDeliveryDateRange] = useState<string>('3 - 5 Business Days');
+
+  useEffect(() => {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() + 3);
+    const end = new Date(today);
+    end.setDate(today.getDate() + 5);
+
+    const startStr = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    const endStr = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    setDeliveryDateRange(`${startStr} - ${endStr}`);
+  }, []);
 
   const loadCartData = async () => {
     try {
@@ -44,7 +56,6 @@ export default function CartPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Toggle Single Item Selection
   const toggleSelectItem = (itemId: string) => {
     if (selectedItemIds.includes(itemId)) {
       setSelectedItemIds(prev => prev.filter(id => id !== itemId));
@@ -53,7 +64,6 @@ export default function CartPage() {
     }
   };
 
-  // Toggle All Items Selection
   const toggleSelectAll = () => {
     if (!cart) return;
     if (selectedItemIds.length === cart.items.length) {
@@ -96,7 +106,6 @@ export default function CartPage() {
     }
   };
 
-  // Dynamic Calculations ONLY for Checked/Selected Items
   const selectedItems = cart?.items.filter(item => selectedItemIds.includes(item.id)) || [];
   const selectedSubtotal = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -111,97 +120,55 @@ export default function CartPage() {
   const allSelected = cart ? (cart.items.length > 0 && selectedItemIds.length === cart.items.length) : false;
 
   return (
-    <div className={styles.pageContainer} style={{ paddingBottom: '100px' }}>
-      
-      {/* 1. Announcement Bar */}
-      <div className={styles.announcementBar}>
-        <div className={styles.announcementText}>
-          ✦ FREE EXPRESS SHIPPING ON ORDERS ABOVE ₹5,000 · COMPLIMENTARY ROYAL GIFT PACKAGING ON ALL ORDERS ✦ FREE EXPRESS SHIPPING ON ORDERS ABOVE ₹5,000 · COMPLIMENTARY ROYAL GIFT PACKAGING ON ALL ORDERS
-        </div>
-      </div>
-
-      {/* 2. Top Header Navigation (Storefront Navigation) */}
-      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
-        <div className={styles.navLeft}>
-          <button 
-            className={`${styles.iconButton} ${styles.mobileOnly}`} 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Navigation Menu"
-          >
-            <div className={styles.menuButton}>
-              <span className={styles.menuBar}></span>
-              <span className={styles.menuBar}></span>
-              <span className={styles.menuBar}></span>
-            </div>
-          </button>
-          
-          <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
-            <Image src="/assets/logo.svg" alt="Riwaaya Threads Logo" width={180} height={25} className={styles.logoImage} priority />
+    <div className="min-h-screen bg-[#f7efe3] text-[#1a0a0e] font-sans">
+      {/* 2. Top Header Navigation */}
+      <header className={`sticky top-0 z-50 backdrop-blur-md border-b border-[#b8963e]/20 transition-all duration-300 px-4 sm:px-6 md:px-10 py-3 flex items-center justify-between ${scrolled ? 'bg-[#f7efe3]/95 shadow-md' : 'bg-[#f7efe3]/90'}`}>
+        {/* Left: Brand Logo (Standard E-Commerce Size) */}
+        <div className="flex items-center">
+          <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }} className="flex items-center">
+            <Image 
+              src="/assets/riwaaya_logo.png" 
+              alt="Riwaaya Threads Logo" 
+              width={140} 
+              height={32} 
+              className="h-7 sm:h-8 md:h-9 w-auto object-contain"
+              priority
+            />
           </a>
-
-          <ul className={`${styles.navLinks} ${styles.desktopOnly}`} style={{ marginLeft: '32px' }}>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Pakistani Suits</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/coords'); }}>Co-Ord Sets</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/party'); }}>Bridal Edit</a></li>
-            <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/hampers'); }}>Gift Hampers</a></li>
-          </ul>
         </div>
 
-        <div className={styles.navRight} style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-          <button className={styles.iconButton} aria-label="Search">
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        {/* Right: Search & Profile */}
+        <div className="flex items-center gap-2 sm:gap-3 justify-end">
+          <button 
+            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10" 
+            aria-label="Search"
+            onClick={() => router.push('/collections/all')}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
           </button>
 
           <button 
-            className={styles.iconButton} 
-            aria-label="Shopping Bag"
-            onClick={() => router.push('/cart')}
-            style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10" 
+            aria-label="Profile"
+            onClick={() => {
+              const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
+              router.push(token ? '/profile' : '/login');
+            }}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
-              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <span style={{
-              position: 'absolute',
-              top: '-4px',
-              right: '-6px',
-              backgroundColor: '#6b1929',
-              color: '#ffffff',
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              width: '18px',
-              height: '18px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1.5px solid #fff'
-            }}>
-              {cart?.items.length || 0}
-            </span>
           </button>
         </div>
       </header>
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div style={{
-          position: 'fixed',
-          inset: '70px 0 0 0',
-          backgroundColor: 'var(--background, #fffdf8)',
-          zIndex: 97,
-          padding: '40px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px',
-          fontFamily: 'var(--font-serif, Georgia, serif)',
-          fontSize: '1.6rem',
-          borderBottom: '1px solid rgba(184, 150, 62, 0.2)'
-        }}>
+        <div className="fixed inset-x-0 top-[70px] bottom-0 bg-[#f7efe3] z-50 p-10 flex flex-col gap-6 font-serif text-xl border-b border-[#b8963e]/20">
           <a href="#" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); router.push('/collections/suits'); }}>Pakistani Suits</a>
           <a href="#" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); router.push('/collections/coords'); }}>Co-Ord Sets</a>
           <a href="#" onClick={(e) => { e.preventDefault(); setMobileMenuOpen(false); router.push('/collections/party'); }}>Bridal & Festive Edit</a>
@@ -210,56 +177,60 @@ export default function CartPage() {
       )}
 
       {/* Breadcrumbs Navigation */}
-      <div className={styles.breadcrumbs} style={{ padding: '20px 20px 0 20px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }}>Home</a>
-        <span className={styles.breadcrumbDivider}>/</span>
-        <span className={styles.breadcrumbActive}>Shopping Bag ({cart?.items.length || 0})</span>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-4 flex items-center gap-2 text-[11px] md:text-xs font-semibold tracking-wider uppercase text-stone-500">
+        <a href="#" className="hover:text-[#6b1929] transition-colors" onClick={(e) => { e.preventDefault(); router.push('/'); }}>Home</a>
+        <span className="text-[#b8963e]/40">/</span>
+        <span className="text-[#6b1929] font-bold">Shopping Bag ({cart?.items.length || 0})</span>
       </div>
 
       {/* Cart Container Workspace */}
-      <div style={{ maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '16px 20px 60px' }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-6">
         
         {/* Page Title & Luxury Header Card */}
-        <div className={styles.cartHeaderCard} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-[#b8963e]/20 shadow-sm">
           <div>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.18em', color: 'var(--accent, #b8963e)', textTransform: 'uppercase' }}>
+            <span className="text-[10px] md:text-xs font-extrabold tracking-[0.18em] text-[#b8963e] uppercase">
               ✦ RIWAAYA THREADS COUTURE
             </span>
-            <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: '1.8rem', color: 'var(--primary, #6b1929)', margin: '2px 0 0', fontWeight: 600 }}>
+            <h1 className="font-serif text-2xl md:text-3xl font-semibold text-[#6b1929] mt-0.5">
               Your Curated Shopping Bag
             </h1>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ padding: '6px 14px', borderRadius: '30px', backgroundColor: '#6b1929', color: '#fffdf8', fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div className="flex items-center gap-3">
+            <span className="bg-[#6b1929] text-white text-xs font-semibold px-4 py-1.5 rounded-full tracking-wider">
               {selectedItems.length} of {cart?.items.length || 0} Items Selected
             </span>
           </div>
         </div>
 
         {/* Free Shipping Progress Bar Widget */}
-        <div style={{ backgroundColor: '#ffffff', border: '1.5px solid rgba(184, 150, 62, 0.28)', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', boxShadow: '0 4px 18px rgba(107, 25, 41, 0.04)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#2c2c2c', flexWrap: 'wrap', gap: '8px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1.1rem' }}>🚚</span>
+        <div className="bg-white border border-[#b8963e]/30 rounded-2xl p-4 md:p-6 mb-6 shadow-sm">
+          <div className="flex justify-between items-center text-xs md:text-sm font-semibold mb-2 text-stone-800 flex-wrap gap-2">
+            <span className="flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#6b1929]">
+                <rect x="1" y="3" width="15" height="13"></rect>
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+              </svg>
               {selectedItems.length === 0 ? (
-                <span style={{ color: '#666' }}>Select items below to calculate express shipping threshold</span>
+                <span className="text-stone-500">Select items below to calculate express shipping threshold</span>
               ) : amountNeededForFreeShipping === 0 ? (
-                <span style={{ color: '#10b981', fontWeight: 700 }}>🎉 Congratulations! You unlocked <strong>FREE Express Shipping</strong></span>
+                <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Congratulations! You unlocked <strong>FREE Express Shipping</strong>
+                </span>
               ) : (
                 <span>Add <strong>₹{amountNeededForFreeShipping.toLocaleString()}</strong> more to unlock <strong>FREE Express Shipping</strong></span>
               )}
             </span>
-            <span style={{ color: '#b8963e', fontWeight: 700 }}>{Math.round(shippingProgress)}%</span>
+            <span className="text-[#b8963e] font-bold">{Math.round(shippingProgress)}%</span>
           </div>
-          <div style={{ width: '100%', height: '8px', backgroundColor: '#f5eee4', borderRadius: '4px', overflow: 'hidden' }}>
+          <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden">
             <div 
-              style={{ 
-                width: `${shippingProgress}%`, 
-                height: '100%', 
-                background: amountNeededForFreeShipping === 0 ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)' : 'linear-gradient(90deg, #b8963e 0%, #d4af37 100%)', 
-                transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)' 
-              }} 
+              className={`h-full transition-all duration-500 ${amountNeededForFreeShipping === 0 ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' : 'bg-gradient-to-r from-[#b8963e] to-[#c8a96e]'}`}
+              style={{ width: `${shippingProgress}%` }}
             />
           </div>
         </div>
@@ -267,42 +238,46 @@ export default function CartPage() {
         {/* Main Cart Workspace Grid */}
         {!cart || cart.items.length === 0 ? (
           /* Empty Cart State */
-          <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: '#ffffff', borderRadius: '16px', border: '1.5px dashed rgba(184, 150, 62, 0.35)', boxShadow: '0 8px 30px rgba(107, 25, 41, 0.04)' }}>
-            <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>🛍️</div>
-            <h2 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: '1.8rem', color: 'var(--primary, #6b1929)', marginBottom: '10px' }}>
+          <div className="text-center py-20 px-6 bg-white rounded-3xl border border-dashed border-[#b8963e]/40 shadow-sm flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-[#6b1929]/10 text-[#6b1929] flex items-center justify-center">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
+                <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
+              </svg>
+            </div>
+            <h2 className="font-serif text-2xl md:text-3xl text-[#6b1929] font-semibold">
               Your Bag is Currently Empty
             </h2>
-            <p style={{ color: '#666', fontSize: '0.98rem', maxWidth: '440px', margin: '0 auto 32px', lineHeight: 1.6 }}>
+            <p className="text-stone-600 text-sm max-w-md leading-relaxed">
               Discover our latest handcrafted pret collections, luxury lawn suits, and festive bridal edits.
             </p>
             <button 
-              className={styles.btnPrimary} 
-              style={{ padding: '16px 42px', fontSize: '0.85rem', letterSpacing: '0.12em' }}
+              className="mt-2 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase px-8 py-3.5 rounded-full transition-all shadow-md hover:shadow-lg" 
               onClick={() => router.push('/collections/all')}
             >
               EXPLORE COLLECTIONS ➔
             </button>
           </div>
         ) : (
-          <div className={styles.cartWorkspace}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             
             {/* Left Column: Items List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="lg:col-span-2 flex flex-col gap-4">
               
               {/* Select All Bar */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', border: '1.5px solid rgba(184, 150, 62, 0.22)', padding: '12px 18px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 600, boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', color: '#2c2c2c' }}>
+              <div className="flex justify-between items-center bg-white border border-[#b8963e]/20 px-4 py-3 rounded-xl text-xs md:text-sm font-semibold text-stone-800 shadow-sm">
+                <label className="flex items-center gap-2.5 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={allSelected} 
                     onChange={toggleSelectAll} 
-                    className={styles.cartCheckbox} 
+                    className="w-4 h-4 accent-[#6b1929] rounded cursor-pointer" 
                   />
                   <span>Select All ({selectedItemIds.length}/{cart.items.length} items for checkout)</span>
                 </label>
                 {selectedItemIds.length < cart.items.length && (
                   <button 
-                    style={{ background: 'none', border: 'none', color: '#b8963e', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                    className="text-[#b8963e] hover:text-[#6b1929] text-xs font-bold underline transition-colors"
                     onClick={toggleSelectAll}
                   >
                     Select All
@@ -310,7 +285,7 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* Items List Cards (Myntra-Inspired Mobile & Desktop Luxury Layout) */}
+              {/* Items List Cards */}
               {cart.items.map((item) => {
                 const isSelected = selectedItemIds.includes(item.id);
                 const mrpPrice = item.price + 4500;
@@ -319,41 +294,41 @@ export default function CartPage() {
                 return (
                   <div 
                     key={item.id} 
-                    className={styles.myntraCartCard}
-                    style={{ 
-                      opacity: updatingId === item.id ? 0.6 : isSelected ? 1 : 0.75,
-                      borderColor: isSelected ? 'rgba(107, 25, 41, 0.35)' : 'rgba(184, 150, 62, 0.2)',
-                      backgroundColor: isSelected ? '#ffffff' : '#fafafa'
-                    }}
+                    className={`bg-white rounded-2xl border p-4 flex gap-4 transition-all duration-200 ${
+                      isSelected 
+                        ? 'border-[#6b1929]/40 shadow-md' 
+                        : 'border-[#b8963e]/20 opacity-75 bg-stone-50/50'
+                    }`}
                   >
-                    {/* Left Column: Image with Overlaid Round Checkmark Badge */}
+                    {/* Image with Checkbox */}
                     <div 
-                      className={styles.myntraImgWrapper} 
+                      className="relative w-24 h-32 md:w-28 md:h-36 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0 cursor-pointer group" 
                       onClick={() => toggleSelectItem(item.id)}
-                      title="Click to select/unselect item"
                     >
                       <Image 
                         src={item.image} 
                         alt={item.name} 
                         fill 
-                        style={{ objectFit: 'cover' }} 
+                        className="object-cover object-top" 
                       />
-                      <div className={`${styles.myntraCheckCircle} ${isSelected ? styles.myntraCheckActive : ''}`}>
-                        {isSelected ? '✓' : ''}
+                      <div className={`absolute top-2 left-2 w-5 h-5 rounded-full border border-white flex items-center justify-center text-[10px] font-bold transition-all ${
+                        isSelected ? 'bg-[#6b1929] text-white' : 'bg-white/80 text-transparent'
+                      }`}>
+                        ✓
                       </div>
                     </div>
 
-                    {/* Right Column: Card Content Body */}
-                    <div className={styles.myntraCardBody}>
+                    {/* Card Content Body */}
+                    <div className="flex flex-col justify-between flex-1 py-0.5">
                       
-                      {/* Brand Title & Top Right Remove Icon */}
-                      <div className={styles.myntraCardHeader}>
+                      {/* Brand Title & Remove Button */}
+                      <div className="flex justify-between items-start gap-2">
                         <div>
-                          <h3 className={styles.myntraBrandTitle}>Riwaaya Threads</h3>
-                          <p className={styles.myntraProductSubtitle}>{item.name}</p>
+                          <h3 className="text-[10px] font-bold text-[#b8963e] tracking-widest uppercase">Riwaaya Threads</h3>
+                          <p className="font-serif text-sm md:text-base font-semibold text-stone-900 line-clamp-1">{item.name}</p>
                         </div>
                         <button 
-                          className={styles.myntraCloseBtn} 
+                          className="w-7 h-7 rounded-full bg-stone-100 text-stone-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition-colors text-xs font-bold" 
                           onClick={() => handleRemove(item.id)}
                           disabled={updatingId === item.id}
                           title="Remove Item"
@@ -362,25 +337,23 @@ export default function CartPage() {
                         </button>
                       </div>
 
-                      {/* Pill Controls Row: Size Dropdown, Qty Stepper, Urgency */}
-                      <div className={styles.myntraPillRow}>
-                        <div className={styles.myntraSelectPill}>
-                          <span>Size: <strong>{item.size}</strong></span>
-                          <span style={{ fontSize: '0.65rem', color: '#888' }}>▼</span>
+                      {/* Size & Quantity Controls Row */}
+                      <div className="flex items-center gap-3 flex-wrap my-2">
+                        <div className="bg-stone-100 px-3 py-1 rounded-lg text-xs font-semibold text-stone-700">
+                          Size: <strong className="text-stone-900">{item.size}</strong>
                         </div>
 
-                        <div className={styles.myntraQtyPill}>
-                          <span>Qty:</span>
+                        <div className="flex items-center border border-stone-200 rounded-lg bg-white h-7 px-1">
                           <button 
-                            className={styles.miniStepBtn} 
+                            className="w-6 h-full text-stone-600 hover:text-[#6b1929] font-bold text-xs" 
                             onClick={(e) => { e.stopPropagation(); handleQtyChange(item.id, item.quantity - 1); }}
                             disabled={updatingId === item.id}
                           >
                             -
                           </button>
-                          <span style={{ fontWeight: 700 }}>{item.quantity}</span>
+                          <span className="w-6 text-center text-xs font-bold text-stone-900">{item.quantity}</span>
                           <button 
-                            className={styles.miniStepBtn} 
+                            className="w-6 h-full text-stone-600 hover:text-[#6b1929] font-bold text-xs" 
                             onClick={(e) => { e.stopPropagation(); handleQtyChange(item.id, item.quantity + 1); }}
                             disabled={updatingId === item.id}
                           >
@@ -388,27 +361,26 @@ export default function CartPage() {
                           </button>
                         </div>
 
-                        <span className={styles.stockUrgencyTag}>2 left</span>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">2 left</span>
                       </div>
 
-                      {/* Price Row: Current Price, MRP Strikethrough, Discount */}
-                      <div className={styles.myntraPriceRow}>
-                        <span className={styles.currentPrice}>₹{(item.price * item.quantity).toLocaleString()}</span>
-                        <span className={styles.mrpPrice}>₹{(mrpPrice * item.quantity).toLocaleString()}</span>
-                        <span className={styles.savingsTag}>₹{(savings * item.quantity).toLocaleString()} Off</span>
-                        <span style={{ fontSize: '0.72rem', color: '#999', cursor: 'pointer' }} title="Tax inclusive">ⓘ</span>
+                      {/* Price Row */}
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="font-bold text-base md:text-lg text-[#6b1929]">₹{(item.price * item.quantity).toLocaleString()}</span>
+                        <span className="line-through text-stone-400 text-xs font-serif">₹{(mrpPrice * item.quantity).toLocaleString()}</span>
+                        <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded">₹{(savings * item.quantity).toLocaleString()} Off</span>
                       </div>
 
-                      {/* Return & Shipping Trust Details */}
-                      <div className={styles.myntraDeliveryInfo}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>↩</span>
-                          <span><strong>7 days</strong> return available</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>🚚</span>
-                          <span>Express Delivery by <strong>18 Aug - 20 Aug</strong></span>
-                        </div>
+                      {/* Delivery Info */}
+                      <div className="flex items-center gap-4 text-[11px] text-stone-500 mt-1">
+                        <span className="flex items-center gap-1">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                          <strong>7 days</strong> return
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                          Express Delivery by <strong>{deliveryDateRange}</strong>
+                        </span>
                       </div>
 
                     </div>
@@ -417,34 +389,37 @@ export default function CartPage() {
               })}
             </div>
 
-            {/* Right Summary Sidebar (Ultra-Luxury Sidebar) */}
-            <div className={styles.cartSummaryCard}>
-              <h3 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: '1.3rem', color: '#6b1929', borderBottom: '1px solid rgba(184, 150, 62, 0.25)', paddingBottom: '12px', marginBottom: '18px', fontWeight: 600 }}>
+            {/* Right Summary Sidebar */}
+            <div className="bg-white rounded-2xl border border-[#b8963e]/20 p-6 shadow-sm sticky top-24">
+              <h3 className="font-serif text-lg font-semibold text-[#6b1929] border-b border-[#b8963e]/20 pb-3 mb-4">
                 Order Summary
               </h3>
 
               {/* Delivery Guarantee Box */}
-              <div style={{ backgroundColor: 'rgba(247, 239, 227, 0.5)', border: '1px solid rgba(184, 150, 62, 0.2)', borderRadius: '8px', padding: '12px 14px', marginBottom: '18px', fontSize: '0.8rem', color: '#333' }}>
-                <span style={{ fontWeight: 700, color: '#6b1929' }}>🚚 Express Delivery Guarantee</span>
-                <p style={{ margin: '3px 0 0', color: '#666', fontSize: '0.76rem' }}>Estimated Delivery: <strong>3 - 5 Business Days</strong> across India & International.</p>
+              <div className="bg-[#f7efe3]/60 border border-[#b8963e]/20 rounded-xl p-3.5 mb-4 text-xs text-stone-700">
+                <span className="font-bold text-[#6b1929] flex items-center gap-1.5 mb-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                  Express Delivery Guarantee
+                </span>
+                <p className="text-[11px] text-stone-500">Estimated Delivery: <strong>{deliveryDateRange}</strong> across India & International.</p>
               </div>
 
               {/* Price Breakdown Table */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem', color: '#555', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="flex flex-col gap-3 text-xs md:text-sm text-stone-600 mb-6">
+                <div className="flex justify-between">
                   <span>Selected Items ({selectedItems.length})</span>
-                  <span style={{ fontWeight: 700, color: '#2c2c2c', fontFamily: 'var(--font-serif, Georgia, serif)' }}>₹{selectedSubtotal.toLocaleString()}</span>
+                  <span className="font-serif font-bold text-stone-900">₹{selectedSubtotal.toLocaleString()}</span>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="flex justify-between">
                   <span>Estimated Express Shipping</span>
-                  <span style={{ fontWeight: 700, color: shippingCost === 0 ? '#10b981' : '#2c2c2c' }}>
+                  <span className={`font-bold ${shippingCost === 0 ? 'text-emerald-600' : 'text-stone-900'}`}>
                     {selectedItems.length === 0 ? '₹0' : shippingCost === 0 ? 'FREE' : `₹${shippingCost.toLocaleString()}`}
                   </span>
                 </div>
 
                 {appliedPromo && selectedItems.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600 }}>
+                  <div className="flex justify-between text-emerald-600 font-semibold">
                     <span>Promo Code ({appliedPromo})</span>
                     <span>- ₹1,000</span>
                   </div>
@@ -452,90 +427,145 @@ export default function CartPage() {
               </div>
 
               {/* Promo Code Drawer */}
-              <form onSubmit={handleApplyPromo} style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <form onSubmit={handleApplyPromo} className="flex gap-2 mb-6">
                 <input 
                   type="text" 
                   placeholder="Promo or Voucher Code" 
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
-                  style={{ flex: 1, padding: '10px 12px', border: '1px solid rgba(184, 150, 62, 0.35)', borderRadius: '6px', fontSize: '0.82rem', outline: 'none', background: '#fffdf8' }}
+                  className="flex-1 px-3 py-2 border border-[#b8963e]/30 rounded-xl text-xs bg-[#fffdf8] focus:outline-none focus:border-[#6b1929]"
                 />
                 <button 
                   type="submit" 
-                  style={{ backgroundColor: '#6b1929', color: '#fffdf8', border: 'none', borderRadius: '6px', padding: '0 16px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.08em' }}
+                  className="bg-[#6b1929] hover:bg-[#8b2336] text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors"
                 >
                   APPLY
                 </button>
               </form>
 
               {/* Grand Total */}
-              <div style={{ borderTop: '2px solid rgba(184, 150, 62, 0.25)', paddingTop: '16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#2c2c2c' }}>Grand Total</span>
-                <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: '1.5rem', fontWeight: 700, color: '#6b1929' }}>
+              <div className="border-t-2 border-[#b8963e]/20 pt-4 mb-6 flex justify-between items-baseline">
+                <span className="text-sm font-bold text-stone-900">Grand Total</span>
+                <span className="font-serif text-2xl font-bold text-[#6b1929]">
                   ₹{selectedItems.length === 0 ? '0' : grandTotal.toLocaleString()}
                 </span>
               </div>
 
+              {/* Checkout CTA */}
+              <button 
+                disabled={selectedItems.length === 0}
+                className="w-full bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs md:text-sm tracking-widest uppercase py-3.5 rounded-full shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  if (selectedItems.length > 0) {
+                    router.push('/checkout');
+                  }
+                }}
+              >
+                PROCEED TO CHECKOUT ➔
+              </button>
 
-
-              {/* Certified Brand Assurances */}
-              <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px dashed rgba(184, 150, 62, 0.25)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div className={styles.cartTrustBadge}>
-                  <span style={{ fontSize: '1.05rem' }}>👑</span>
+              {/* Trust Badges */}
+              <div className="mt-6 pt-4 border-t border-dashed border-[#b8963e]/20 flex flex-col gap-2.5 text-[11px] text-stone-600">
+                <div className="flex items-center gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b8963e" strokeWidth="2"><path d="M2 4l3 12h14l3-12-6 7-4-5-4 5-6-7z"></path></svg>
                   <span>100% Authentic Artisanal Pret & Formal Couture</span>
                 </div>
-                <div className={styles.cartTrustBadge}>
-                  <span style={{ fontSize: '1.05rem' }}>🛡️</span>
+                <div className="flex items-center gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b8963e" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                   <span>7-Day Hassle-Free Exchange & Return Policy</span>
                 </div>
-                <div className={styles.cartTrustBadge}>
-                  <span style={{ fontSize: '1.05rem' }}>🔒</span>
+                <div className="flex items-center gap-2.5">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b8963e" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                   <span>256-Bit SSL Encrypted Payment & Doorstep COD</span>
                 </div>
               </div>
             </div>
-
           </div>
         )}
-
       </div>
 
-      {/* MOBILE STICKY FLOATING CHECKOUT DOCK (Shown only on Mobile < 768px) */}
-      {cart && cart.items.length > 0 && (
-        <div className={styles.mobileOnly} style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 99,
-          backgroundColor: '#ffffff',
-          borderTop: '1.5px solid rgba(184, 150, 62, 0.3)',
-          padding: '12px 20px',
-          boxShadow: '0 -6px 20px rgba(0,0,0,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px'
-        }}>
+      {/* Footer Section */}
+      <footer className="bg-[#1a0a0e] text-stone-300 pt-16 pb-32 md:pb-12 px-4 sm:px-6 md:px-10 border-t border-[#b8963e]/30 mt-16">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+          <div className="flex flex-col items-start gap-4">
+            <Image src="/assets/riwaaya_logo.png" alt="Riwaaya Threads Logo" width={180} height={50} className="w-36 sm:w-44 h-auto object-contain" />
+            <p className="text-xs text-stone-400 leading-relaxed font-light">Pakistani Suits · Co-ord Sets · Ethnic Wear. Crafted with heritage, worn with pride.</p>
+            <div className="flex items-center gap-3">
+              <a href="https://www.instagram.com/riwaayathreads/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="Instagram">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </a>
+              <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="Pinterest">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.17-.11-.95-.2-2.41.04-3.45.22-.94 1.42-6.03 1.42-6.03s-.36-.73-.36-1.81c0-1.7 0.99-2.97 2.22-2.97 1.05 0 1.55.79 1.55 1.73 0 1.05-.67 2.63-1.02 4.09-.29 1.23.62 2.23 1.83 2.23 2.2 0 3.89-2.32 3.89-5.67 0-2.96-2.13-5.03-5.17-5.03-3.52 0-5.59 2.64-5.59 5.37 0 1.06.41 2.2 0.92 2.82.1.12.11.23.08.36-.09.38-.3.1.23-.39 1.58-.06.26-.2.34-.38.29-1.57-.73-2.55-1.77-2.55-2.87 0-3.9 2.83-7.49 8.18-7.49 4.29 0 7.63 3.06 7.63 7.15 0 4.27-2.69 7.7-6.42 7.7-1.25 0-2.43-.65-2.83-1.42l-.77 2.94c-.28 1.07-1.03 2.41-1.54 3.23C9.72 23.8 10.84 24 12 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/>
+                </svg>
+              </a>
+              <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="Facebook">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </a>
+              <a href="https://wa.me/917277506057" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="WhatsApp">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.852 0-3.667-.497-5.26-1.442l-.377-.224-3.913 1.026 1.044-3.813-.247-.393c-1.038-1.652-1.587-3.565-1.587-5.529 0-5.656 4.602-10.258 10.259-10.258 2.74 0 5.316 1.068 7.251 3.004s3.003 4.512 3.003 7.255c0 5.657-4.602 10.257-10.259 10.257m0-18.758c-4.686 0-8.5 3.814-8.5 8.5 0 1.83.585 3.528 1.579 4.92l.149.213-.675 2.467 2.527-.663.204.121c1.344.796 2.898 1.215 4.482 1.215 4.686 0 8.5-3.814 8.5-8.5 0-2.268-.883-4.4-2.489-6.006-1.607-1.607-3.739-2.49-6.007-2.49"/>
+                </svg>
+              </a>
+            </div>
+          </div>
           <div>
-            <span style={{ fontSize: '0.7rem', color: '#666', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <h4 className="font-serif text-sm font-bold text-[#b8963e] tracking-wider uppercase mb-4">Collections</h4>
+            <ul className="flex flex-col gap-2.5 text-xs text-stone-400">
+              <li><a href="#" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Pakistani Suits</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/coords'); }}>Co-ord Sets</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/party'); }}>Ethnic Wear</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Bridal Edit</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">New Season Arrivals</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-serif text-sm font-bold text-[#b8963e] tracking-wider uppercase mb-4">Information</h4>
+            <ul className="flex flex-col gap-2.5 text-xs text-stone-400">
+              <li><a href="#" className="hover:text-white transition-colors">Our Story</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Artisan Program</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Sustainability</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Shipping & Returns</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-serif text-sm font-bold text-[#b8963e] tracking-wider uppercase mb-4">Get in touch</h4>
+            <ul className="flex flex-col gap-3 text-xs">
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Primary Address</span><span className="text-stone-400">36/1/H /2 Bright Street, Kolkata - 700017</span></li>
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Secondary Address</span><span className="text-stone-400">40 Foota Road, Shaheen Bagh, Delhi - 110025</span></li>
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Phone</span><span className="text-stone-400">+9172775060, +917250846963, +919163037924</span></li>
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Email</span><span className="text-stone-400">info@riwaayathreads.com</span></li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto pt-10 mt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-4">
+          <p>© 2026 Riwaaya Threads. All Rights Reserved.</p>
+          <div className="flex gap-6"><a href="#" className="hover:text-stone-300 transition-colors">Privacy Policy</a><a href="#" className="hover:text-stone-300 transition-colors">Terms of Service</a></div>
+        </div>
+      </footer>
+
+      {/* MOBILE STICKY FLOATING CHECKOUT DOCK */}
+      {cart && cart.items.length > 0 && (
+        <div className="fixed bottom-[64px] left-3 right-3 z-40 bg-white/95 backdrop-blur-md border border-[#b8963e]/30 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center justify-between gap-4 md:hidden">
+          <div>
+            <span className="text-[10px] text-stone-500 block uppercase tracking-wider font-semibold">
               Total ({selectedItems.length} {selectedItems.length === 1 ? 'item' : 'items'})
             </span>
-            <span style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: '1.3rem', fontWeight: 700, color: '#6b1929' }}>
+            <span className="font-serif text-xl font-bold text-[#6b1929]">
               ₹{selectedItems.length === 0 ? '0' : grandTotal.toLocaleString()}
             </span>
           </div>
 
           <button 
-            className={styles.btnPrimary} 
             disabled={selectedItems.length === 0}
-            style={{ 
-              padding: '12px 24px', 
-              fontSize: '0.8rem', 
-              letterSpacing: '0.1em', 
-              opacity: selectedItems.length === 0 ? 0.5 : 1,
-              backgroundColor: selectedItems.length === 0 ? '#888' : '#6b1929'
-            }}
+            className="bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase px-6 py-3 rounded-full shadow-md transition-all disabled:opacity-50"
             onClick={() => {
               if (selectedItems.length > 0) {
                 router.push('/checkout');
@@ -546,6 +576,66 @@ export default function CartPage() {
           </button>
         </div>
       )}
+
+      {/* Bottom Floating Mobile Navigation Bar (CART Active) */}
+      <nav className="bottom-nav-safe md:hidden">
+        <button 
+          type="button"
+          onClick={() => router.push('/')} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
+        >
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M3 9.5L12 3l9 6.5V20a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 13 20v-5h-2v5A1.5 1.5 0 0 1 9.5 21.5h-5A1.5 1.5 0 0 1 3 20V9.5z"></path>
+          </svg>
+          <span>HOME</span>
+        </button>
+        
+        <button 
+          type="button"
+          onClick={() => router.push('/collections/all')} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
+        >
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M3 9l1-5h16l1 5"></path>
+            <path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"></path>
+            <path d="M9 21V12h6v9"></path>
+          </svg>
+          <span>SHOP</span>
+        </button>
+
+        <button 
+          id="bottom-cart-icon"
+          data-bottom-cart="true"
+          type="button"
+          onClick={() => router.push('/cart')} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-[#6b1929] relative py-1"
+        >
+          <div className="w-6 h-0.5 bg-[#6b1929] rounded-full absolute -top-2" />
+          <div className="relative">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
+              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z" className="bag-body-path"></path>
+              <path d="M16 8V6a4 4 0 0 0-8 0v2" className="bag-handle-path"></path>
+            </svg>
+            {cart && cart.items.length > 0 && <span className="absolute -top-1 -right-2 bg-[#6b1929] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cart.items.length}</span>}
+          </div>
+          <span>CART</span>
+        </button>
+
+        <button 
+          type="button"
+          onClick={() => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
+            router.push(token ? '/profile' : '/login');
+          }} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
+        >
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>PROFILE</span>
+        </button>
+      </nav>
     </div>
   );
 }

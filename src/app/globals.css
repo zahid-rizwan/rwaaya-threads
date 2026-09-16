@@ -87,6 +87,38 @@ button {
   background: var(--accent);
 }
 
+/* Hide scrollbar for Chrome, Safari, Firefox, Edge */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari and Opera */
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Fixed Mobile Bottom Navigation Bar with Safe Area & Scrollbar Protection */
+.bottom-nav-safe {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(184, 150, 62, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-top: 8px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+  padding-left: 8px;
+  padding-right: 8px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
 /* Global Utility Animations */
 @keyframes fadeIn {
   from {

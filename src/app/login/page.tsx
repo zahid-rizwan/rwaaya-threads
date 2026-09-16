@@ -1,362 +1,185 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import styles from '@/app/page.module.css';
-import { mergeGuestCart } from '@/lib/api';
+import { loginUser, registerUser } from '@/lib/api';
+import { syncWishlistOnLogin } from '@/lib/wishlist';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-
-type LoginStep = 'phone' | 'otp' | 'success';
-
-export default function Login() {
+export default function LoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState<LoginStep>('phone');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [userName, setUserName] = useState('');
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [isLoginMode, setIsLoginMode] = useState<boolean>(true);
+  const [name, setName] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
-  const handleClose = () => {
-    if (window.history.length > 1) {
-      router.back();
-    } else {
-      router.push('/');
-    }
-  };
-
-  // Auto-focus first OTP input when step changes to otp
-  useEffect(() => {
-    if (step === 'otp') {
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    }
-  }, [step]);
-
-  // Auto-redirect after success
-  useEffect(() => {
-    if (step === 'success') {
-      const timer = setTimeout(() => router.push('/'), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [step, router]);
-
-  const formattedPhone = phone ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : '';
-
-  // ========== STEP 1: SEND OTP ==========
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      setError('Please enter a valid 10-digit phone number');
-      return;
-    }
-
+    setErrorMsg('');
     setLoading(true);
+
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/send-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: `+91${digits.slice(-10)}` })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setStep('otp');
+      if (isLoginMode) {
+        const res = await loginUser(email, password);
+        if (res && res.token) {
+          localStorage.setItem('riwaaya_token', res.token);
+          if (res.user) {
+            localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
+          }
+          // Myntra-style Wishlist Sync: merge guest local wishlist items with backend user account
+          await syncWishlistOnLogin(res.token);
+          router.push('/profile');
+        } else {
+          setErrorMsg(res?.message || 'Invalid email or password. Please try again.');
+        }
       } else {
-        setError(data.message || 'Failed to send OTP');
+        if (!name.trim()) {
+          setErrorMsg('Please enter your full name.');
+          setLoading(false);
+          return;
+        }
+        const res = await registerUser(name, email, password);
+        if (res && res.token) {
+          localStorage.setItem('riwaaya_token', res.token);
+          if (res.user) {
+            localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
+          }
+          await syncWishlistOnLogin(res.token);
+          router.push('/profile');
+        } else {
+          setErrorMsg(res?.message || 'Registration failed. Please check details.');
+        }
       }
-    } catch {
-      setError('Network error. Please check your connection.');
+    } catch (err: any) {
+      setErrorMsg(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
-  // ========== OTP INPUT HANDLERS ==========
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
-    // Auto-focus next input
-    if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    const newOtp = [...otp];
-    for (let i = 0; i < pasted.length; i++) {
-      newOtp[i] = pasted[i];
-    }
-    setOtp(newOtp);
-    if (pasted.length >= 6) {
-      otpRefs.current[5]?.focus();
-    }
-  };
-
-  // ========== STEP 2: VERIFY OTP ==========
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    const otpString = otp.join('');
-    if (otpString.length !== 6) {
-      setError('Please enter the complete 6-digit OTP');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const digits = phone.replace(/\D/g, '');
-      const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: `+91${digits.slice(-10)}`, otp: otpString })
-      });
-      const data = await res.json();
-
-      if (res.ok && data.token) {
-        // Save auth data
-        localStorage.setItem('riwaaya_token', data.token);
-        localStorage.setItem('riwaaya_user', JSON.stringify(data.user));
-        setUserName(data.user?.name || 'User');
-
-        // Merge guest cart into user's cart
-        await mergeGuestCart();
-
-        setStep('success');
-      } else {
-        setError(data.message || 'Invalid OTP. Please try again.');
-        setOtp(['', '', '', '', '', '']);
-        otpRefs.current[0]?.focus();
-      }
-    } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const progressIndex = step === 'phone' ? 1 : step === 'otp' ? 2 : 4;
 
   return (
-    <div className={styles.loginModalOverlay} style={{ position: 'fixed', inset: 0, backgroundColor: 'var(--background)' }}>
-      <div className={styles.loginModalBackdrop} onClick={handleClose}></div>
-      <div className={styles.loginCard} style={{ margin: 'auto' }}>
-        
-        {/* Header Banner */}
-        <div className={styles.loginCardHeaderImage}>
+    <div className="min-h-screen bg-[#fbf6ee] text-[#2c2c2c] flex flex-col justify-between">
+      {/* Header */}
+      <header className="py-6 px-6 sm:px-10 border-b border-[#b8963e]/20 flex items-center justify-between bg-[#f7efe3]/90 backdrop-blur-md sticky top-0 z-50">
+        <button onClick={() => router.push('/')} className="flex items-center">
           <Image 
-            src="/assets/2131d28031801befa44bd105ec5914c27b763b64.png"
-            alt=""
-            fill
-            style={{ objectFit: 'cover', filter: 'blur(4px) brightness(0.7)' }}
+            src="/assets/riwaaya_logo.png" 
+            alt="Riwaaya Threads Logo" 
+            width={150} 
+            height={36} 
+            className="h-8 w-auto object-contain" 
+            priority
           />
-          <div className={styles.loginCardHeaderTitle}>
-            Riwaaya Threads
-          </div>
-        </div>
-
-        {/* Close X */}
-        <button className={styles.loginCloseButton} onClick={handleClose} aria-label="Close login modal">
-          ✕
         </button>
+        <button 
+          onClick={() => router.push('/')}
+          className="text-xs font-bold text-[#6b1929] hover:underline uppercase tracking-wider"
+        >
+          Back to Store
+        </button>
+      </header>
 
-        {/* Content Container */}
-        <div className={styles.loginCardContent}>
-          
-          {/* Progress bar */}
-          <div className={styles.loginProgressBar}>
-            {[1, 2, 3, 4].map(i => (
-              <div
-                key={i}
-                className={`${styles.loginProgressSegment} ${i <= progressIndex ? styles.loginProgressSegmentActive : ''}`}
-              />
-            ))}
+      {/* Main Content */}
+      <main className="max-w-md w-full mx-auto px-4 py-12 flex-1 flex flex-col justify-center">
+        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 sm:p-10 border border-[#b8963e]/30 shadow-xl text-center">
+          <div className="w-12 h-12 rounded-full bg-[#6b1929]/10 border border-[#6b1929]/20 flex items-center justify-center mx-auto mb-4 text-[#6b1929]">
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
           </div>
 
-          {/* ========== PHONE STEP ========== */}
-          {step === 'phone' && (
-            <>
-              <h1 className={styles.loginTitle}>Welcome Back</h1>
-              <p className={styles.loginSubtitle}>
-                Continue your journey with timeless fashion, handcrafted treasures & elegant gifting.
-              </p>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-1">
+            {isLoginMode ? 'Welcome Back' : 'Create Account'}
+          </h1>
+          <p className="text-xs text-stone-500 mb-6 uppercase tracking-widest font-semibold">
+            {isLoginMode ? 'Sign in to access saved items & orders' : 'Join the Atelier Luxury Circle'}
+          </p>
 
-              <form onSubmit={handleSendOtp} className={styles.loginForm}>
-                <label className={styles.phoneInputLabel}>📱 MOBILE NUMBER</label>
-                <div className={styles.phoneInputContainer}>
-                  <div className={styles.countryCodeSelector}>
-                    <span style={{ fontSize: '1rem', marginRight: '4px' }}>🇮🇳</span>
-                    <span>+91</span>
-                  </div>
-                  <input 
-                    type="tel" 
-                    placeholder="98765 43210" 
-                    required
-                    maxLength={10}
-                    value={phone}
-                    onChange={(e) => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setError(''); }}
-                    className={styles.phoneInput} 
-                    autoFocus
-                  />
-                </div>
-
-                {error && <p className={styles.loginError}>{error}</p>}
-
-                <button type="submit" className={styles.loginSubmitBtn} disabled={loading || phone.replace(/\D/g, '').length < 10}>
-                  {loading ? (
-                    <span className={styles.loginSpinner}></span>
-                  ) : (
-                    <>
-                      <span>SEND OTP</span>
-                      <span style={{ marginLeft: '8px' }}>➔</span>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div className={styles.loginDivider}>
-                <span className={styles.dividerLine}></span>
-                <span className={styles.dividerText}>OR</span>
-                <span className={styles.dividerLine}></span>
-              </div>
-
-              <button className={styles.googleLoginBtn} onClick={() => alert('Google login coming soon!')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: '10px' }}>
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22-.79-.63z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                <span>Continue with Google</span>
-              </button>
-            </>
-          )}
-
-          {/* ========== OTP STEP ========== */}
-          {step === 'otp' && (
-            <>
-              <h1 className={styles.loginTitle}>Verify OTP</h1>
-              <p className={styles.loginSubtitle}>
-                We&apos;ve sent a 6-digit code to <strong>{formattedPhone}</strong>
-              </p>
-
-              <form onSubmit={handleVerifyOtp} className={styles.loginForm}>
-                <label className={styles.phoneInputLabel}>🔐 ENTER VERIFICATION CODE</label>
-                <div className={styles.otpInputRow}>
-                  {otp.map((digit, i) => (
-                    <input
-                      key={i}
-                      ref={(el) => { otpRefs.current[i] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(i, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      onPaste={i === 0 ? handleOtpPaste : undefined}
-                      className={`${styles.otpDigitInput} ${digit ? styles.otpDigitFilled : ''}`}
-                      autoComplete="one-time-code"
-                    />
-                  ))}
-                </div>
-
-                {error && <p className={styles.loginError}>{error}</p>}
-
-                <button type="submit" className={styles.loginSubmitBtn} disabled={loading || otp.join('').length !== 6}>
-                  {loading ? (
-                    <span className={styles.loginSpinner}></span>
-                  ) : (
-                    <>
-                      <span>VERIFY & LOGIN</span>
-                      <span style={{ marginLeft: '8px' }}>➔</span>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-                <button 
-                  className={styles.loginEmailBtn} 
-                  onClick={() => { setStep('phone'); setOtp(['', '', '', '', '', '']); setError(''); }}
-                >
-                  ← Change Number
-                </button>
-                <button 
-                  className={styles.loginEmailBtn}
-                  onClick={async () => {
-                    setError('');
-                    const digits = phone.replace(/\D/g, '');
-                    try {
-                      await fetch(`${API_BASE_URL}/auth/send-otp`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ phone: `+91${digits.slice(-10)}` })
-                      });
-                      setError('');
-                      setOtp(['', '', '', '', '', '']);
-                      otpRefs.current[0]?.focus();
-                    } catch {}
-                  }}
-                >
-                  Resend OTP
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* ========== SUCCESS STEP ========== */}
-          {step === 'success' && (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
-              <h1 className={styles.loginTitle} style={{ color: '#2e7d32' }}>Welcome, {userName}!</h1>
-              <p className={styles.loginSubtitle}>
-                Login successful. Your cart has been synced. Redirecting you to the store...
-              </p>
-              <div className={styles.loginSpinner} style={{ margin: '24px auto' }}></div>
+          {errorMsg && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+              {errorMsg}
             </div>
           )}
 
-          {/* Trust & Terms (visible on phone & otp steps) */}
-          {step !== 'success' && (
-            <>
-              <div className={styles.loginTrustDivider}></div>
-              <ul className={styles.loginTrustList}>
-                <li className={styles.loginTrustItem}>
-                  <span>✦</span> Secure Login & Payments
-                </li>
-                <li className={styles.loginTrustItem}>
-                  <span>✦</span> Your Information is Protected
-                </li>
-                <li className={styles.loginTrustItem}>
-                  <span>✦</span> Easy Returns & Exchanges
-                </li>
-                <li className={styles.loginTrustItem}>
-                  <span>✦</span> Trusted by Thousands of Customers
-                </li>
-              </ul>
-              <p className={styles.loginModalTerms}>
-                By continuing you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
-              </p>
-            </>
-          )}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
+            {!isLoginMode && (
+              <div>
+                <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
+                  Full Name
+                </label>
+                <input 
+                  type="text" 
+                  required 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Mariam Khan"
+                  className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
+                />
+              </div>
+            )}
 
+            <div>
+              <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
+                Email Address
+              </label>
+              <input 
+                type="email" 
+                required 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold tracking-wider uppercase text-stone-700 mb-1">
+                Password
+              </label>
+              <input 
+                type="password" 
+                required 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-xl border border-[#b8963e]/30 bg-stone-50/50 text-stone-900 text-sm focus:outline-none focus:border-[#6b1929] transition-all"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="mt-2 w-full py-3.5 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs tracking-widest uppercase rounded-full shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50"
+            >
+              {loading ? 'Processing...' : (isLoginMode ? 'SIGN IN' : 'REGISTER')}
+            </button>
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-[#b8963e]/20 text-center">
+            <p className="text-xs text-stone-600 font-medium">
+              {isLoginMode ? "Don't have an account?" : "Already registered?"}{' '}
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsLoginMode(!isLoginMode);
+                  setErrorMsg('');
+                }}
+                className="text-[#6b1929] font-bold underline hover:text-[#8b2336] transition-colors ml-1"
+              >
+                {isLoginMode ? 'Create one now' : 'Sign in here'}
+              </button>
+            </p>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-4 text-center text-xs text-stone-500 border-t border-[#b8963e]/20">
+        © 2026 Riwaaya Threads. All Rights Reserved.
+      </footer>
     </div>
   );
 }

@@ -113,7 +113,7 @@ function mapProductItem(item: any): Product {
 export async function getProducts(tag?: string): Promise<Product[]> {
   try {
     const url = tag && tag !== 'all' ? `${API_BASE_URL}/products?tag=${tag}` : `${API_BASE_URL}/products`;
-    const res = await fetch(url, { next: { revalidate: 10 } });
+    const res = await fetch(url, { cache: 'no-store' });
     
     if (res.ok) {
       const payload = await res.json();
@@ -132,7 +132,7 @@ export async function getProducts(tag?: string): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(`${API_BASE_URL}/products/${id}`, { next: { revalidate: 10 } });
+    const res = await fetch(`${API_BASE_URL}/products/${id}`, { cache: 'no-store' });
     if (res.ok) {
       const payload = await res.json();
       const item = (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
@@ -185,7 +185,13 @@ export async function fetchCart(): Promise<CartData> {
   };
 }
 
-export async function addCartItem(productId: string, size = 'M', quantity = 1, color = 'Ivory'): Promise<CartData> {
+export async function addCartItem(
+  productId: string, 
+  size = 'M', 
+  quantity = 1, 
+  color = 'Ivory',
+  productData?: { name?: string; price?: number; image?: string; category?: string }
+): Promise<CartData> {
   const sid = getSessionId();
   try {
     const res = await fetch(`${API_BASE_URL}/cart`, {
@@ -194,7 +200,17 @@ export async function addCartItem(productId: string, size = 'M', quantity = 1, c
         'Content-Type': 'application/json',
         'x-session-id': sid
       },
-      body: JSON.stringify({ productId, size, quantity, color, sessionId: sid })
+      body: JSON.stringify({ 
+        productId, 
+        size, 
+        quantity, 
+        color, 
+        sessionId: sid,
+        name: productData?.name,
+        price: productData?.price,
+        image: productData?.image,
+        category: productData?.category
+      })
     });
     if (res.ok) {
       const payload = await res.json();
@@ -384,6 +400,38 @@ export async function getOrderById(orderId: string) {
   }
 
   return res.json();
+}
+
+// ======================== AUTHENTICATION ========================
+
+export async function loginUser(email: string, password: string) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Login network error' };
+  }
+}
+
+export async function registerUser(name: string, email: string, password: string) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password })
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    return { success: false, message: err.message || 'Registration network error' };
+  }
 }
 
 // ======================== PAYMENTS ========================

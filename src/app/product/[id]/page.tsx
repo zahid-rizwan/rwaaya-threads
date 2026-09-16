@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import styles from '@/app/page.module.css';
-
 import { getProductById, getProducts, fetchCart, addCartItem, Product } from '@/lib/api';
+import { getWishlistIds, toggleWishlist as toggleWishlistStore, subscribeWishlist } from '@/lib/wishlist';
 import { animateFlyToCart } from '@/lib/flyToCart';
 
 interface Testimonial {
@@ -35,8 +34,13 @@ export default function ProductDetailPage() {
   const [emailInput, setEmailInput] = useState<string>('');
   const [subscribed, setSubscribed] = useState<boolean>(false);
   const [scrolled, setScrolled] = useState<boolean>(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
 
   useEffect(() => {
+    const unsubscribeWishlist = subscribeWishlist((ids) => {
+      setWishlist(ids);
+    });
+
     setLoading(true);
     setProduct(null);
     setSelectedImageIndex(0);
@@ -48,14 +52,34 @@ export default function ProductDetailPage() {
           const avail = data.colors.find(c => c.inStock !== false);
           if (avail) setSelectedColor(avail.name);
         }
+        setLoading(false);
+      } else {
+        getProducts().then(list => {
+          if (list && list.length > 0) {
+            setProduct(list[0]);
+            if (list[0].colors && list[0].colors.length > 0) {
+              const avail = list[0].colors.find(c => c.inStock !== false);
+              if (avail) setSelectedColor(avail.name);
+            }
+          }
+          setLoading(false);
+        }).catch(() => setLoading(false));
       }
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => {
+      getProducts().then(list => {
+        if (list && list.length > 0) {
+          setProduct(list[0]);
+        }
+        setLoading(false);
+      }).catch(() => setLoading(false));
+    });
 
     getProducts().then(list => setRelatedProducts(list.slice(0, 4)));
     fetchCart().then(c => {
       if (c && c.items) setCartCount(c.items.length);
     });
+
+    return () => unsubscribeWishlist();
   }, [rawId]);
 
   useEffect(() => {
@@ -76,10 +100,6 @@ export default function ProductDetailPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-
-
-
 
   const testimonials: Testimonial[] = [
     { text: "The quality of the lawn and the intricate embroidery exceeded all my expectations. It feels like wearing a piece of art.", author: "Mariam K.", city: "Karachi" },
@@ -103,7 +123,20 @@ export default function ProductDetailPage() {
   ];
 
   const addToBag = (productId: string | number, eventOrElem?: React.MouseEvent | HTMLElement, imgSrc?: string) => {
-    addCartItem(String(productId), selectedSize, productQuantity, selectedColor);
+    const p = (selectedProduct && String(selectedProduct.id) === String(productId)) 
+      ? selectedProduct 
+      : relatedProducts.find(item => String(item.id) === String(productId));
+
+    const prodDetails = p ? {
+      name: p.name,
+      price: p.rawPrice || parseFloat(p.price.replace(/[^\d.]/g, '')) || 18500,
+      image: p.image,
+      category: p.category
+    } : undefined;
+
+    addCartItem(String(productId), selectedSize, productQuantity, selectedColor, prodDetails).then(updated => {
+      if (updated && updated.items) setCartCount(updated.items.length);
+    });
     setCartCount(prev => prev + productQuantity);
     
     let sourceElem: HTMLElement | null = null;
@@ -113,16 +146,7 @@ export default function ProductDetailPage() {
       sourceElem = eventOrElem;
     }
     
-    animateFlyToCart(sourceElem, imgSrc || selectedProduct?.image);
-  };
-
-  const toggleWishlist = (productId: string | number) => {
-    const idStr = String(productId);
-    if (wishlist.includes(idStr)) {
-      setWishlist(prev => prev.filter(id => id !== idStr));
-    } else {
-      setWishlist(prev => [...prev, idStr]);
-    }
+    animateFlyToCart(sourceElem, imgSrc || p?.image);
   };
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -134,34 +158,20 @@ export default function ProductDetailPage() {
     }
   };
 
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-
   if (loading) {
     return (
-      <div className={styles.pageContainer}>
-        <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 24px', width: '100%' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '40px' }}>
-            <div className={styles.skeletonCard} style={{ borderRadius: '16px', height: '520px' }}>
-              <div className={styles.skeletonImageWrapper} style={{ height: '100%', paddingTop: 0 }}>
-                <div className={styles.skeletonShimmer} />
-              </div>
+      <div className="min-h-screen bg-[#fbf6ee] text-[#2c2c2c]">
+        <div className="max-w-7xl mx-auto px-4 md:px-10 py-10 w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-14">
+            <div className="w-full aspect-[4/5] rounded-2xl bg-stone-200 animate-pulse relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '10px 0' }}>
-              <div className={styles.skeletonCategory} style={{ width: '30%', height: '14px' }}>
-                <div className={styles.skeletonShimmer} />
-              </div>
-              <div className={styles.skeletonTitle} style={{ width: '80%', height: '32px' }}>
-                <div className={styles.skeletonShimmer} />
-              </div>
-              <div className={styles.skeletonPrice} style={{ width: '40%', height: '24px' }}>
-                <div className={styles.skeletonShimmer} />
-              </div>
-              <div style={{ width: '100%', height: '100px', borderRadius: '8px', background: '#ebdcc9', position: 'relative', overflow: 'hidden', marginTop: '10px' }}>
-                <div className={styles.skeletonShimmer} />
-              </div>
-              <div style={{ width: '100%', height: '50px', borderRadius: '30px', background: '#e2ceb5', position: 'relative', overflow: 'hidden', marginTop: '10px' }}>
-                <div className={styles.skeletonShimmer} />
-              </div>
+            <div className="flex flex-col gap-4 py-2">
+              <div className="w-1/3 h-4 bg-stone-200 rounded animate-pulse" />
+              <div className="w-4/5 h-8 bg-stone-200 rounded animate-pulse" />
+              <div className="w-2/5 h-6 bg-stone-200 rounded animate-pulse" />
+              <div className="w-full h-24 bg-stone-200 rounded-xl animate-pulse mt-4" />
+              <div className="w-full h-12 bg-stone-200 rounded-full animate-pulse mt-4" />
             </div>
           </div>
         </div>
@@ -171,10 +181,10 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className={styles.pageContainer} style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px', textAlign: 'center', padding: '40px 20px' }}>
-        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', color: 'var(--primary)' }}>Product Not Found</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>The requested product listing could not be retrieved from the catalog.</p>
-        <button className={styles.btnGold} onClick={() => router.push('/')} style={{ marginTop: '12px' }}>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-center px-4 py-16 bg-[#fbf6ee]">
+        <h2 className="font-serif text-2xl md:text-3xl text-[#6b1929] font-semibold">Product Not Found</h2>
+        <p className="text-stone-500 text-sm max-w-md">The requested product listing could not be retrieved from the catalog.</p>
+        <button className="mt-3 px-6 py-3 bg-[#b8963e] hover:bg-[#c8a96e] text-[#2c2c2c] font-bold text-xs tracking-widest uppercase rounded-full transition-all" onClick={() => router.push('/')}>
           Return to Atelier Storefront
         </button>
       </div>
@@ -182,13 +192,10 @@ export default function ProductDetailPage() {
   }
 
   const selectedProduct = product;
-
   const productImages = (selectedProduct.images && selectedProduct.images.length > 0)
     ? selectedProduct.images
     : [selectedProduct.image];
-
   const currentMainImage = productImages[selectedImageIndex] || productImages[0] || selectedProduct.image;
-
   const allSizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   const getSizeStatus = (sizeName: string) => {
@@ -198,109 +205,171 @@ export default function ProductDetailPage() {
     const match = selectedProduct.variants.find(
       v => v.size?.toUpperCase() === sizeName.toUpperCase()
     );
-    if (!match) {
-      return { isAvailable: false, isOutOfStock: true };
-    }
-    if (match.stock <= 0) {
-      return { isAvailable: true, isOutOfStock: true };
-    }
-    return { isAvailable: true, isOutOfStock: false };
+    if (!match) return { isAvailable: false, isOutOfStock: true };
+    return { isAvailable: true, isOutOfStock: match.stock <= 0 };
   };
 
   const isCurrentSizeOutOfStock = getSizeStatus(selectedSize).isOutOfStock;
 
   return (
-    <div className={styles.pageContainer}>
-      
-      {/* 1. Announcement Bar */}
-      <div className={styles.announcementBar}>
-        <div className={styles.announcementText}>
-          ✦ FREE SHIPPING ON ORDERS ABOVE ₹5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE ✦ FREE SHIPPING ON ORDERS ABOVE ₹5,000 · NEW ARRIVALS: THE GULZAR EDIT IS HERE
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-[#fbf6ee] text-[#2c2c2c]">
       {/* 2. Top Header Navigation */}
-      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
-        <div className={styles.logoContainer}>
-          <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
-            <Image src="/assets/logo.svg" alt="Riwaaya Threads Logo" width={180} height={25} className={styles.logoImage} priority />
+      <header className={`sticky top-0 z-50 backdrop-blur-md border-b border-[#b8963e]/20 transition-all duration-300 px-4 sm:px-6 md:px-10 py-3 flex items-center justify-between ${scrolled ? 'bg-[#f7efe3]/95 shadow-md' : 'bg-[#f7efe3]/90'}`}>
+        {/* Left: Brand Logo (Standard E-Commerce Size) */}
+        <div className="flex items-center">
+          <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }} className="flex items-center">
+            <Image 
+              src="/assets/riwaaya_logo.png" 
+              alt="Riwaaya Threads Logo" 
+              width={140} 
+              height={32} 
+              className="h-7 sm:h-8 md:h-9 w-auto object-contain"
+              priority
+            />
           </a>
         </div>
 
-        <div className={styles.navRight} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button className={styles.iconButton} aria-label="Search">
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        {/* Right: Search, Wishlist & Profile */}
+        <div className="flex items-center gap-2 sm:gap-3 justify-end">
+          <button 
+            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10" 
+            aria-label="Search"
+            onClick={() => router.push('/collections/all')}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
           </button>
 
+          <button 
+            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10 relative" 
+            aria-label="Wishlist"
+            onClick={() => router.push('/wishlist')}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            {wishlist.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#6b1929] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {wishlist.length}
+              </span>
+            )}
+          </button>
+
+          <button 
+            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10" 
+            aria-label="Profile"
+            onClick={() => {
+              const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
+              router.push(token ? '/profile' : '/login');
+            }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
         </div>
       </header>
 
-      {/* Breadcrumbs */}
-      <div className={styles.breadcrumbs} style={{ padding: '24px 40px 0 40px' }}>
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/'); }}>Home</a>
-        <span className={styles.breadcrumbDivider}>/</span>
-        <a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Collections</a>
-        <span className={styles.breadcrumbDivider}>/</span>
-        <span className={styles.breadcrumbActive}>{selectedProduct.name}</span>
-      </div>
+      {/* 3. Breadcrumbs */}
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-4 md:pt-6 pb-2 flex items-center gap-2 text-[11px] md:text-xs font-semibold tracking-wider uppercase text-stone-500 overflow-x-auto whitespace-nowrap scrollbar-none">
+        <a href="#" className="hover:text-[#6b1929] transition-colors" onClick={(e) => { e.preventDefault(); router.push('/'); }}>Home</a>
+        <span className="text-[#b8963e]/40">/</span>
+        <a href="#" className="hover:text-[#6b1929] transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Collections</a>
+        <span className="text-[#b8963e]/40">/</span>
+        <span className="text-[#6b1929] font-bold truncate max-w-[200px] md:max-w-none">{selectedProduct.name}</span>
+      </nav>
 
-      {/* Main product detail content block */}
-      <div className={styles.productDetailContent}>
-        <div className={styles.productDetailGallery}>
-          <div className={styles.mainDetailImageWrapper}>
-            <Image src={currentMainImage} alt={selectedProduct.name} fill className={styles.mainDetailImage} priority />
+      {/* 4. Main Product Detail Grid */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-4 md:py-8 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-14 items-start w-full">
+        
+        {/* Left Column: Image Gallery */}
+        <div className="flex flex-col gap-3 md:gap-4 w-full">
+          <div className="relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-[#fcf9f4] shadow-md border border-[#b8963e]/20 group">
+            <Image 
+              src={currentMainImage} 
+              alt={selectedProduct.name} 
+              fill 
+              className="object-cover object-top transition-transform duration-500 group-hover:scale-105" 
+              priority 
+            />
           </div>
-          <div className={styles.thumbnailList}>
+
+          {/* Thumbnails Row */}
+          <div className="flex gap-2.5 md:gap-3 overflow-x-auto py-1 scrollbar-none touch-pan-x w-full">
             {productImages.map((imgUrl, idx) => (
               <button 
                 key={idx} 
-                className={`${styles.thumbnailBtn} ${selectedImageIndex === idx ? styles.thumbnailActive : ''}`}
+                className={`relative w-16 h-20 md:w-20 md:h-24 rounded-xl border-2 overflow-hidden flex-shrink-0 transition-all duration-200 cursor-pointer ${
+                  selectedImageIndex === idx 
+                    ? 'border-[#6b1929] shadow-md scale-[1.02]' 
+                    : 'border-[#b8963e]/20 opacity-75 hover:opacity-100 hover:border-[#b8963e]'
+                }`}
                 onClick={() => setSelectedImageIndex(idx)}
               >
-                <Image src={imgUrl} alt={`${selectedProduct.name} view ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                <Image src={imgUrl} alt={`${selectedProduct.name} view ${idx + 1}`} fill className="object-cover object-top" />
               </button>
             ))}
           </div>
         </div>
 
-        <div className={styles.productDetailInfo}>
-          <span className={styles.detailBrandName}>RIWAAYA THREADS · {selectedProduct.category.toUpperCase()}</span>
-          <h1 className={styles.detailProductName}>{selectedProduct.name}</h1>
+        {/* Right Column: Product Details & Purchase Controls */}
+        <div className="flex flex-col w-full text-left pt-1 md:pt-2">
           
-          <div className={styles.reviewsRow}>
-            <div className={styles.starsContainer}>
+          {/* Brand & Category Tag */}
+          <span className="text-[11px] md:text-xs font-bold text-[#b8963e] tracking-[0.18em] uppercase mb-2">
+            RIWAAYA THREADS · {selectedProduct.category.toUpperCase()}
+          </span>
+
+          {/* Product Name */}
+          <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-semibold text-stone-900 leading-tight mb-3">
+            {selectedProduct.name}
+          </h1>
+          
+          {/* Rating Stars & Reviews */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex text-[#b8963e] text-sm gap-0.5">
               {[1, 2, 3, 4, 5].map(s => (
-                <span key={s} className={styles.starFilled}>★</span>
+                <span key={s}>★</span>
               ))}
             </div>
-            <span className={styles.reviewsCount}>(128 reviews)</span>
+            <span className="text-xs text-stone-500 font-semibold">(128 reviews)</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', margin: '16px 0 20px 0' }}>
-            <span className={styles.detailProductPrice} style={{ margin: 0 }}>{selectedProduct.price}</span>
+          {/* Pricing Row */}
+          <div className="flex items-baseline gap-3 flex-wrap pb-4 mb-6 border-b border-[#b8963e]/20">
+            <span className="text-2xl md:text-3xl font-extrabold text-[#6b1929] tracking-wide">
+              {selectedProduct.price}
+            </span>
             {selectedProduct.originalPrice && (
-              <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '1.25rem', fontFamily: 'var(--font-serif)' }}>
+              <span className="text-base md:text-lg text-stone-400 line-through font-serif">
                 {selectedProduct.originalPrice}
               </span>
             )}
             {Boolean(selectedProduct.discountPercent) && (
-              <span style={{ backgroundColor: 'var(--accent, #b8963e)', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700, padding: '4px 8px', borderRadius: '4px', letterSpacing: '0.05em' }}>
+              <span className="bg-[#6b1929] text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full tracking-wider uppercase">
                 {selectedProduct.discountPercent}% OFF
               </span>
             )}
           </div>
 
+          {/* Color Selection */}
           {selectedProduct.colors && selectedProduct.colors.filter(c => c.inStock !== false).length > 0 && (
-            <div className={styles.detailOptionSection}>
-              <label className={styles.detailOptionLabel}>COLOUR — {selectedColor.toUpperCase()}</label>
-              <div className={styles.colorSelectorList}>
+            <div className="flex flex-col gap-2.5 mb-6">
+              <label className="text-xs font-bold tracking-widest text-stone-800 uppercase">
+                COLOUR — <span className="text-[#6b1929]">{selectedColor.toUpperCase()}</span>
+              </label>
+              <div className="flex items-center gap-3">
                 {selectedProduct.colors.filter(c => c.inStock !== false).map((color) => (
                   <button
                     key={color.name}
-                    className={`${styles.colorCircle} ${selectedColor.toLowerCase() === color.name.toLowerCase() ? styles.colorCircleActive : ''}`}
+                    className={`w-8 h-8 rounded-full border-2 border-white shadow-sm transition-all duration-200 cursor-pointer ${
+                      selectedColor.toLowerCase() === color.name.toLowerCase() 
+                        ? 'ring-2 ring-offset-2 ring-[#6b1929] scale-110' 
+                        : 'hover:scale-105'
+                    }`}
                     style={{ backgroundColor: color.hex }}
                     onClick={() => setSelectedColor(color.name)}
                     title={color.name}
@@ -311,19 +380,23 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          <div className={styles.detailOptionSection}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-              <label className={styles.detailOptionLabel}>
-                SIZE — {selectedSize}
+          {/* Size Selection */}
+          <div className="flex flex-col gap-2.5 mb-6">
+            <div className="flex items-center justify-between w-full">
+              <label className="text-xs font-bold tracking-widest text-stone-800 uppercase">
+                SIZE — <span className="text-[#6b1929]">{selectedSize}</span>
                 {isCurrentSizeOutOfStock && (
-                  <span style={{ color: 'var(--color-danger, #dc3545)', marginLeft: '8px', fontSize: '0.72rem', fontWeight: 600 }}>
+                  <span className="text-red-600 ml-2 text-[11px] font-semibold">
                     (OUT OF STOCK)
                   </span>
                 )}
               </label>
-              <button className={styles.sizeGuideLink}>Size Guide</button>
+              <button className="text-xs font-bold text-[#b8963e] underline cursor-pointer hover:text-[#6b1929] transition-colors">
+                Size Guide
+              </button>
             </div>
-            <div className={styles.sizeSelectorList}>
+            
+            <div className="flex items-center gap-2.5 flex-wrap">
               {allSizesList.map((size) => {
                 const { isAvailable, isOutOfStock } = getSizeStatus(size);
                 const disabled = !isAvailable || isOutOfStock;
@@ -331,7 +404,13 @@ export default function ProductDetailPage() {
                   <button
                     key={size}
                     disabled={disabled}
-                    className={`${styles.sizeBox} ${selectedSize === size ? styles.sizeBoxActive : ''} ${disabled ? styles.sizeBoxDisabled : ''}`}
+                    className={`min-w-[48px] h-11 px-3 rounded-lg border font-bold text-xs flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                      selectedSize === size 
+                        ? 'bg-[#6b1929] text-white border-[#6b1929] shadow-md scale-[1.02]' 
+                        : disabled 
+                        ? 'opacity-40 line-through bg-stone-100 border-stone-200 cursor-not-allowed text-stone-400' 
+                        : 'bg-white text-stone-800 border-[#b8963e]/30 hover:border-[#6b1929] hover:bg-[#fcf9f4]'
+                    }`}
                     onClick={() => !disabled && setSelectedSize(size)}
                     title={disabled ? `${size} - Out of Stock / Unavailable` : `Select Size ${size}`}
                   >
@@ -342,25 +421,27 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          <div className={styles.purchaseActionRow}>
-            <div className={styles.quantityCounter}>
-              <button onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} className={styles.quantityBtn}>-</button>
-              <span className={styles.quantityValue}>{productQuantity}</span>
-              <button onClick={() => setProductQuantity(prev => prev + 1)} className={styles.quantityBtn}>+</button>
+          {/* Quantity & Add to Bag Row */}
+          <div className="flex items-center gap-3 mb-6 w-full">
+            <div className="flex items-center border border-[#b8963e]/40 rounded-full bg-white h-12 px-1 flex-shrink-0">
+              <button 
+                onClick={() => setProductQuantity(prev => Math.max(1, prev - 1))} 
+                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold text-stone-700 hover:bg-[#b8963e]/10 hover:text-[#6b1929] transition-colors"
+              >
+                -
+              </button>
+              <span className="w-8 text-center font-bold text-sm text-stone-900">{productQuantity}</span>
+              <button 
+                onClick={() => setProductQuantity(prev => prev + 1)} 
+                className="w-9 h-9 rounded-full flex items-center justify-center text-lg font-bold text-stone-700 hover:bg-[#b8963e]/10 hover:text-[#6b1929] transition-colors"
+              >
+                +
+              </button>
             </div>
 
             <button 
-              className={styles.btnPrimary} 
               disabled={isCurrentSizeOutOfStock}
-              style={{ 
-                flexGrow: 1, 
-                padding: '16px 24px', 
-                display: 'flex', 
-                justifyContent: 'center',
-                opacity: isCurrentSizeOutOfStock ? 0.5 : 1,
-                cursor: isCurrentSizeOutOfStock ? 'not-allowed' : 'pointer',
-                backgroundColor: isCurrentSizeOutOfStock ? 'var(--text-muted, #777)' : undefined
-              }}
+              className="flex-1 h-12 bg-[#6b1929] hover:bg-[#8b2336] text-white font-bold text-xs md:text-sm tracking-widest uppercase rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-stone-400"
               onClick={(e) => {
                 if (!isCurrentSizeOutOfStock) {
                   addToBag(selectedProduct.id, e, selectedProduct.image);
@@ -369,37 +450,64 @@ export default function ProductDetailPage() {
             >
               {isCurrentSizeOutOfStock ? "OUT OF STOCK" : "ADD TO BAG"}
             </button>
+
+            <button
+              onClick={() => toggleWishlistStore(String(selectedProduct.id))}
+              className={`w-12 h-12 rounded-full border flex flex-shrink-0 items-center justify-center transition-all ${
+                wishlist.includes(String(selectedProduct.id))
+                  ? 'bg-[#6b1929] border-[#6b1929] text-white shadow-md'
+                  : 'bg-white border-[#b8963e]/40 text-stone-700 hover:text-[#6b1929] hover:border-[#6b1929]'
+              }`}
+              title={wishlist.includes(String(selectedProduct.id)) ? "Remove from Wishlist" : "Save to Wishlist"}
+            >
+              <svg width="20" height="20" fill={wishlist.includes(String(selectedProduct.id)) ? "#ffffff" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+            </button>
           </div>
 
-          <div className={styles.assurancesRow}>
+          {/* Assurances Row */}
+          <div className="flex items-center justify-around bg-[#b8963e]/10 border border-[#b8963e]/20 rounded-xl py-3 px-2 mb-6 text-[11px] md:text-xs font-bold tracking-wider uppercase text-[#6b1929]">
             <span>✦ Free Shipping</span>
             <span>✦ Easy Returns</span>
             <span>✦ Secure Payment</span>
           </div>
 
-          {/* Tabs Bar (Figma ID: 41:5700) */}
-          <div className={styles.detailTabsBar}>
+          {/* Tabs Section */}
+          <div className="flex gap-4 md:gap-6 border-b-2 border-[#b8963e]/20 mb-4 overflow-x-auto scrollbar-none">
             <button 
-              className={`${styles.detailTabBtn} ${activeDetailTab === 'details' ? styles.detailTabBtnActive : ''}`}
+              className={`pb-2.5 text-xs font-bold tracking-widest uppercase transition-all duration-200 whitespace-nowrap border-b-2 -mb-[2px] ${
+                activeDetailTab === 'details' 
+                  ? 'text-[#6b1929] border-[#6b1929]' 
+                  : 'text-stone-400 border-transparent hover:text-stone-700'
+              }`}
               onClick={() => setActiveDetailTab('details')}
             >
               DETAILS
             </button>
             <button 
-              className={`${styles.detailTabBtn} ${activeDetailTab === 'materials' ? styles.detailTabBtnActive : ''}`}
+              className={`pb-2.5 text-xs font-bold tracking-widest uppercase transition-all duration-200 whitespace-nowrap border-b-2 -mb-[2px] ${
+                activeDetailTab === 'materials' 
+                  ? 'text-[#6b1929] border-[#6b1929]' 
+                  : 'text-stone-400 border-transparent hover:text-stone-700'
+              }`}
               onClick={() => setActiveDetailTab('materials')}
             >
               MATERIALS
             </button>
             <button 
-              className={`${styles.detailTabBtn} ${activeDetailTab === 'shipping' ? styles.detailTabBtnActive : ''}`}
+              className={`pb-2.5 text-xs font-bold tracking-widest uppercase transition-all duration-200 whitespace-nowrap border-b-2 -mb-[2px] ${
+                activeDetailTab === 'shipping' 
+                  ? 'text-[#6b1929] border-[#6b1929]' 
+                  : 'text-stone-400 border-transparent hover:text-stone-700'
+              }`}
               onClick={() => setActiveDetailTab('shipping')}
             >
               SHIPPING & RETURNS
             </button>
           </div>
 
-          <div className={styles.detailTabContent}>
+          <div className="bg-[#fffdf8] p-4 md:p-5 rounded-xl border border-[#b8963e]/20 text-xs md:text-sm text-stone-600 leading-relaxed shadow-sm">
             {activeDetailTab === 'details' && (
               <p>{selectedProduct.description || "Plush velvet with gold piping and tassel detail. This exquisite piece is crafted by master artisans using traditional techniques passed down through generations. Each set undergoes rigorous quality checks before it reaches your hands."}</p>
             )}
@@ -412,53 +520,80 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* You May Also Like Section (Figma ID: 41:6758) */}
-        <div className={styles.relatedProductsSection}>
-          <div className={styles.relatedHeader}>
-            <h2 className={styles.relatedTitle}>You May Also Like</h2>
-            <button className={styles.viewAllLink} onClick={() => router.push('/collections/all')}>View All</button>
+        {/* You May Also Like Section */}
+        <div className="col-span-full mt-10 md:mt-16 pt-8 md:pt-12 border-t border-[#b8963e]/20 w-full">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-serif text-xl md:text-2xl font-semibold text-stone-900">You May Also Like</h2>
+            <button className="text-xs font-bold tracking-widest text-[#b8963e] hover:text-[#6b1929] uppercase transition-colors" onClick={() => router.push('/collections/all')}>
+              View All
+            </button>
           </div>
-          <div className={styles.relatedGrid}>
-            {relatedProducts.map((product) => (
-              <div key={product.id} className={styles.productCard} onClick={() => router.push(`/product/${product.id}`)}>
-                <div className={styles.productImageWrapper}>
-                  <Image src={product.image} alt={product.name} fill className={styles.productImage} />
-                  {product.badge && <span className={styles.productBadge}>{product.badge}</span>}
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            {relatedProducts.map((product) => {
+              const isSaved = wishlist.includes(String(product.id));
+              return (
+                <div 
+                  key={product.id} 
+                  className="group cursor-pointer flex flex-col bg-white rounded-xl overflow-hidden border border-[#b8963e]/20 shadow-sm hover:shadow-md transition-all duration-300 relative" 
+                  onClick={() => router.push(`/product/${product.id}`)}
+                >
+                  <div className="relative w-full aspect-[3/4] bg-[#fcf9f4] overflow-hidden">
+                    <Image src={product.image} alt={product.name} fill className="object-cover object-top transition-transform duration-500 group-hover:scale-105" />
+                    {product.badge && (
+                      <span className="absolute top-2 left-2 bg-[#6b1929] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                        {product.badge}
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlistStore(String(product.id));
+                      }}
+                      className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-stone-700 hover:text-[#6b1929] shadow-sm transition-transform active:scale-95"
+                      title={isSaved ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      <svg width="15" height="15" fill={isSaved ? "#6b1929" : "none"} stroke={isSaved ? "#6b1929" : "currentColor"} strokeWidth="2" viewBox="0 0 24 24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="p-3 flex flex-col gap-1">
+                    <p className="text-[10px] font-bold text-[#b8963e] uppercase tracking-wider">{product.category}</p>
+                    <h4 className="text-xs md:text-sm font-semibold text-stone-900 truncate group-hover:text-[#6b1929] transition-colors">{product.name}</h4>
+                    <p className="text-xs md:text-sm font-bold text-[#6b1929]">{product.price}</p>
+                  </div>
                 </div>
-                <div className={styles.productInfo}>
-                  <p className={styles.productCategory}>{product.category}</p>
-                  <h4 className={styles.productTitle}>{product.name}</h4>
-                  <p className={styles.productPrice}>{product.price}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
-      </div>
+
+      </main>
 
       {/* Exclusive New Festive Collection Banner */}
-      <section id="bridal-section" className={styles.festiveBannerContainer}>
-        <div className={styles.festiveCard}>
-          <p className={styles.festiveSubtitle}>EXCLUSIVE</p>
-          <h2 className={styles.festiveTitle}>
-            <span className={styles.festiveSparkle}>✨</span>
+      <section id="bridal-section" className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 my-10">
+        <div className="relative bg-gradient-to-r from-[#6b1929] to-[#4a101b] text-white rounded-3xl p-8 md:p-12 border border-[#b8963e]/30 shadow-2xl flex flex-col items-center text-center gap-3 overflow-hidden">
+          <p className="text-[#b8963e] text-xs font-bold tracking-[0.25em] uppercase">EXCLUSIVE</p>
+          <h2 className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-white flex items-center gap-2">
+            <span>✨</span>
             New Festive Collection
           </h2>
-          <p className={styles.festiveDescription}>
+          <p className="text-stone-200 text-xs sm:text-sm max-w-xl font-light">
             Limited edition embroidered pieces — crafted for the discerning few.
           </p>
-          <button className={styles.festiveBtnGold} onClick={() => router.push('/collections/party')}>
+          <button className="mt-4 bg-[#b8963e] hover:bg-[#c8a96e] text-stone-900 font-bold text-xs md:text-sm tracking-widest uppercase px-8 py-3.5 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105" onClick={() => router.push('/collections/party')}>
             SHOP NOW ➔
           </button>
         </div>
       </section>
 
-      {/* OUR PROMISE / Why RIWAAYA THREADS Section */}
-      <section className={styles.promiseSection}>
-        <div className={styles.promiseHeader}>
-          <p className={styles.promiseSubtitle}>OUR PROMISE</p>
-          <h2 className={styles.promiseTitle}>Why RIWAAYA THREADS</h2>
-          <div className={styles.promiseDivider}>
+      {/* OUR PROMISE Section */}
+      <section className="bg-[#fbf6ee] border-y border-[#b8963e]/20 py-12 md:py-16 px-4 sm:px-6 md:px-10 my-10">
+        <div className="text-center max-w-xl mx-auto mb-10 flex flex-col items-center gap-2">
+          <p className="text-[#b8963e] text-xs font-bold tracking-[0.2em] uppercase">OUR PROMISE</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-stone-900">Why RIWAAYA THREADS</h2>
+          <div className="my-2">
             <svg width="180" height="16" viewBox="0 0 180 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <line x1="0" y1="8" x2="72" y2="8" stroke="#B8963E" strokeWidth="0.8" opacity="0.6" />
               <path d="M84 8C82 4 77 5 77 8C77 11 82 12 84 8Z" fill="#B8963E" />
@@ -469,187 +604,137 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        <div className={styles.promiseGrid}>
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
           {promiseList.map((item, idx) => (
-            <div key={idx} className={styles.promiseItem}>
-              <div className={styles.promiseIconBox}>
+            <div key={idx} className="bg-white/80 p-4 md:p-6 rounded-2xl border border-[#b8963e]/20 flex flex-col items-start gap-2.5 shadow-sm hover:shadow-md transition-all">
+              <div className="w-10 h-10 rounded-xl bg-[#b8963e]/15 flex items-center justify-center text-[#b8963e]">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#B8963E">
                   <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
                 </svg>
               </div>
-              <h3 className={styles.promiseItemTitle}>{item.title}</h3>
-              <p className={styles.promiseItemDesc}>{item.desc}</p>
+              <h3 className="font-serif text-sm md:text-base font-semibold text-stone-900">{item.title}</h3>
+              <p className="text-xs text-stone-600 leading-relaxed font-normal">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className={styles.section} style={{ paddingTop: '40px' }}>
-        <div className={styles.sectionHeader} style={{ marginBottom: 40 }}>
-          <p className={styles.sectionSubtitle}>Words from our community</p>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-8">
+        <div className="text-center mb-8">
+          <p className="text-xs font-bold text-[#b8963e] tracking-widest uppercase">Words from our community</p>
         </div>
-        <div className={styles.testimonialSlider}>
-          <div className={styles.quoteIcon}>“</div>
-          <p className={styles.testimonialText}>{testimonials[activeTestimonial].text}</p>
-          <div className={styles.testimonialOrnament}>
+        <div className="max-w-3xl mx-auto bg-white/60 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-[#b8963e]/20 shadow-md text-center flex flex-col items-center gap-4 relative">
+          <div className="text-4xl text-[#b8963e] font-serif leading-none">“</div>
+          <p className="text-base md:text-xl font-serif italic text-stone-800 leading-relaxed max-w-2xl">{testimonials[activeTestimonial].text}</p>
+          <div className="my-2">
             <svg viewBox="0 0 100 10" fill="none" style={{ width: '100px', height: 'auto' }}>
-              <line x1="0" y1="5" x2="35" y2="5" stroke="var(--accent)" strokeWidth="0.8" />
-              <polygon points="50,1 54,5 50,9 46,5" fill="var(--accent)" />
-              <line x1="65" y1="5" x2="100" y2="5" stroke="var(--accent)" strokeWidth="0.8" />
+              <line x1="0" y1="5" x2="35" y2="5" stroke="#b8963e" strokeWidth="0.8" />
+              <polygon points="50,1 54,5 50,9 46,5" fill="#b8963e" />
+              <line x1="65" y1="5" x2="100" y2="5" stroke="#b8963e" strokeWidth="0.8" />
             </svg>
           </div>
-          <h4 className={styles.testimonialAuthor}>{testimonials[activeTestimonial].author}</h4>
-          <p className={styles.testimonialCity}>{testimonials[activeTestimonial].city}</p>
+          <h4 className="font-bold text-sm md:text-base text-[#6b1929] tracking-wide">{testimonials[activeTestimonial].author}</h4>
+          <p className="text-xs text-stone-500 font-semibold uppercase tracking-wider">{testimonials[activeTestimonial].city}</p>
         </div>
-        <div className={styles.carouselDots}>
+        <div className="flex items-center justify-center gap-2 mt-6">
           {testimonials.map((_, index) => (
-            <button key={index} className={`${styles.dot} ${activeTestimonial === index ? styles.dotActive : ''}`} onClick={() => setActiveTestimonial(index)}></button>
+            <button key={index} className={`h-2.5 rounded-full transition-all ${activeTestimonial === index ? 'w-7 bg-[#6b1929]' : 'w-2.5 bg-stone-300'}`} onClick={() => setActiveTestimonial(index)} />
           ))}
-        </div>
-      </section>
-
-      {/* Explore More / You May Also Like Section */}
-      <section id="heritage-section" className={styles.section} style={{ backgroundColor: 'var(--background)' }}>
-        <div className={styles.exploreHeader}>
-          <p className={styles.exploreSubtitle}>EXPLORE MORE</p>
-          <h2 className={styles.exploreTitle}>You May Also Like</h2>
-        </div>
-        
-        <div className={styles.collectionsGrid}>
-          {exploreCollections.map((col, idx) => (
-            <div key={idx} className={styles.collectionCard} onClick={() => router.push(`/collections/${col.tag}`)}>
-              <Image src={col.image} alt={col.title} fill className={styles.collectionCardImage} />
-              <div className={styles.collectionCardOverlay}>
-                <div className={styles.collectionCardContentLeft}>
-                  <p className={styles.collectionCardBadge}>{col.subtitle}</p>
-                  <h3 className={styles.collectionCardTitle}>{col.title}</h3>
-                </div>
-                <div className={styles.collectionCardArrow}>➔</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      <section className={`${styles.section} ${styles.newsletterBg}`}>
-        <div className={styles.newsletterContent}>
-          <Image src="/assets/55c0c32c9f774f2a29a8d721722af55dd46e4f18.svg" alt="Newsletter emblem" width={80} height={40} className={styles.newsletterIcon} />
-          <p className={styles.sectionSubtitle} style={{ marginBottom: 8 }}>Exclusive Access</p>
-          <h2 className={styles.sectionTitle}>Join the Inner Circle</h2>
-          <p className={styles.newsletterDesc}>Be the first to discover new collections, exclusive Drops, and private sale events.</p>
-          {subscribed ? (
-            <div style={{ color: 'var(--primary)', fontWeight: 'bold', fontFamily: 'var(--font-serif)', fontSize: '1.2rem', padding: '12px' }}>
-              Thank you for joining our Inner Circle. Welcome.
-            </div>
-          ) : (
-            <form onSubmit={handleSubscribe} className={styles.newsletterForm}>
-              <input type="email" placeholder="Your email address" required className={styles.newsletterInput} value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
-              <button type="submit" className={styles.newsletterSubmit}>Subscribe</button>
-            </form>
-          )}
-          <p className={styles.newsletterTip}>No spam, ever. Unsubscribe at any time.</p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className={styles.footer}>
-        <div className={styles.footerDivider}></div>
-        <div className={styles.footerGrid}>
-          <div className={styles.footerBrandColumn}>
-            <Image src="/assets/2d443a0997545c3de1e9383c78565921faa8a0a8.png" alt="Riwaaya Logo" width={110} height={40} className={styles.footerLogo} style={{ filter: 'brightness(0) invert(1)' }} />
-            <p className={styles.footerBio}>Pakistani Suits · Co-ord Sets · Ethnic Wear. Crafted with heritage, worn with pride.</p>
-            <div className={styles.socialLinks}>
-              <a href="#" className={styles.socialBtn} aria-label="Instagram">
-                <Image src="/assets/7c10c71364610cb0db8ddcc4cd844e5469483552.svg" alt="" width={14} height={14} className={styles.socialIcon} />
+      <footer className="bg-[#1a0a0e] text-stone-300 pt-16 pb-24 md:pb-12 px-4 sm:px-6 md:px-10 border-t border-[#b8963e]/30">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+          <div className="flex flex-col items-start gap-4">
+            <Image src="/assets/riwaaya_logo.png" alt="Riwaaya Threads Logo" width={180} height={50} className="w-36 sm:w-44 h-auto object-contain" />
+            <p className="text-xs text-stone-400 leading-relaxed font-light">Pakistani Suits · Co-ord Sets · Ethnic Wear. Crafted with heritage, worn with pride.</p>
+            <div className="flex items-center gap-3">
+              <a href="https://www.instagram.com/riwaayathreads/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="Instagram">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
               </a>
-              <a href="#" className={styles.socialBtn} aria-label="Pinterest">
-                <Image src="/assets/82c804253c7c7e6dcf81ecdc39f2954dd1b6adc3.svg" alt="" width={14} height={14} className={styles.socialIcon} />
+              <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="Pinterest">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.08 3.16 9.42 7.63 11.17-.11-.95-.2-2.41.04-3.45.22-.94 1.42-6.03 1.42-6.03s-.36-.73-.36-1.81c0-1.7 0.99-2.97 2.22-2.97 1.05 0 1.55.79 1.55 1.73 0 1.05-.67 2.63-1.02 4.09-.29 1.23.62 2.23 1.83 2.23 2.2 0 3.89-2.32 3.89-5.67 0-2.96-2.13-5.03-5.17-5.03-3.52 0-5.59 2.64-5.59 5.37 0 1.06.41 2.2 0.92 2.82.1.12.11.23.08.36-.09.38-.3.1.23-.39 1.58-.06.26-.2.34-.38.29-1.57-.73-2.55-1.77-2.55-2.87 0-3.9 2.83-7.49 8.18-7.49 4.29 0 7.63 3.06 7.63 7.15 0 4.27-2.69 7.7-6.42 7.7-1.25 0-2.43-.65-2.83-1.42l-.77 2.94c-.28 1.07-1.03 2.41-1.54 3.23C9.72 23.8 10.84 24 12 24c6.63 0 12-5.37 12-12S18.63 0 12 0z"/>
+                </svg>
               </a>
-              <a href="#" className={styles.socialBtn} aria-label="Facebook">
-                <Image src="/assets/53b45d88dd6db26bbc4db4fd22ce945fc4900879.svg" alt="" width={14} height={14} className={styles.socialIcon} />
+              <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="Facebook">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </a>
+              <a href="https://wa.me/917277506057" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#b8963e] text-[#b8963e] hover:text-white transition-colors" aria-label="WhatsApp">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.852 0-3.667-.497-5.26-1.442l-.377-.224-3.913 1.026 1.044-3.813-.247-.393c-1.038-1.652-1.587-3.565-1.587-5.529 0-5.656 4.602-10.258 10.259-10.258 2.74 0 5.316 1.068 7.251 3.004s3.003 4.512 3.003 7.255c0 5.657-4.602 10.257-10.259 10.257m0-18.758c-4.686 0-8.5 3.814-8.5 8.5 0 1.83.585 3.528 1.579 4.92l.149.213-.675 2.467 2.527-.663.204.121c1.344.796 2.898 1.215 4.482 1.215 4.686 0 8.5-3.814 8.5-8.5 0-2.268-.883-4.4-2.489-6.006-1.607-1.607-3.739-2.49-6.007-2.49"/>
+                </svg>
               </a>
             </div>
           </div>
           <div>
-            <h4 className={styles.footerColTitle}>Collections</h4>
-            <ul className={styles.footerLinks}>
-              <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Pakistani Suits</a></li>
-              <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/coords'); }}>Co-ord Sets</a></li>
-              <li><a href="#" onClick={(e) => { e.preventDefault(); router.push('/collections/party'); }}>Ethnic Wear</a></li>
-              <li><a href="#">Bridal Edit</a></li>
-              <li><a href="#">New Season Arrivals</a></li>
+            <h4 className="font-serif text-sm font-bold text-[#b8963e] tracking-wider uppercase mb-4">Collections</h4>
+            <ul className="flex flex-col gap-2.5 text-xs text-stone-400">
+              <li><a href="#" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/suits'); }}>Pakistani Suits</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/coords'); }}>Co-ord Sets</a></li>
+              <li><a href="#" className="hover:text-white transition-colors" onClick={(e) => { e.preventDefault(); router.push('/collections/party'); }}>Ethnic Wear</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Bridal Edit</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">New Season Arrivals</a></li>
             </ul>
           </div>
           <div>
-            <h4 className={styles.footerColTitle}>Information</h4>
-            <ul className={styles.footerLinks}>
-              <li><a href="#">Our Story</a></li>
-              <li><a href="#">Artisan Program</a></li>
-              <li><a href="#">Sustainability</a></li>
-              <li><a href="#">Shipping & Returns</a></li>
-              <li><a href="#">Contact Us</a></li>
+            <h4 className="font-serif text-sm font-bold text-[#b8963e] tracking-wider uppercase mb-4">Information</h4>
+            <ul className="flex flex-col gap-2.5 text-xs text-stone-400">
+              <li><a href="#" className="hover:text-white transition-colors">Our Story</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Artisan Program</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Sustainability</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Shipping & Returns</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
             </ul>
           </div>
           <div>
-            <h4 className={styles.footerColTitle}>Get in touch</h4>
-            <ul className={styles.contactInfo}>
-              <li className={styles.contactItem}><span className={styles.contactLabel}>Primary Address</span><span className={styles.contactValue}>36/1/H /2 Bright Street, Kolkata - 700017</span></li>
-              <li className={styles.contactItem}><span className={styles.contactLabel}>Secondary Address</span><span className={styles.contactValue}>40 Foota Road, Shaheen Bagh, Delhi - 110025</span></li>
-              <li className={styles.contactItem}><span className={styles.contactLabel}>Phone</span><span className={styles.contactValue}>+9172775060, +917250846963, +919163037924</span></li>
-              <li className={styles.contactItem}><span className={styles.contactLabel}>Email</span><span className={styles.contactValue}>info@riwaayathreads.com</span></li>
+            <h4 className="font-serif text-sm font-bold text-[#b8963e] tracking-wider uppercase mb-4">Get in touch</h4>
+            <ul className="flex flex-col gap-3 text-xs">
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Primary Address</span><span className="text-stone-400">36/1/H /2 Bright Street, Kolkata - 700017</span></li>
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Secondary Address</span><span className="text-stone-400">40 Foota Road, Shaheen Bagh, Delhi - 110025</span></li>
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Phone</span><span className="text-stone-400">+9172775060, +917250846963, +919163037924</span></li>
+              <li className="flex flex-col gap-0.5"><span className="text-[10px] font-bold text-[#b8963e] uppercase">Email</span><span className="text-stone-400">info@riwaayathreads.com</span></li>
             </ul>
           </div>
         </div>
-        <div className={styles.footerBottom}>
-          <p className={styles.copyright}>© 2026 Riwaaya Threads. All Rights Reserved.</p>
-          <div className={styles.footerLegalLinks}><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div>
+        <div className="max-w-7xl mx-auto pt-10 mt-10 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 gap-4">
+          <p>© 2026 Riwaaya Threads. All Rights Reserved.</p>
+          <div className="flex gap-6"><a href="#" className="hover:text-stone-300 transition-colors">Privacy Policy</a><a href="#" className="hover:text-stone-300 transition-colors">Terms of Service</a></div>
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar (Matching Image 2) */}
-      <nav className={styles.bottomNav}>
+      {/* Bottom Navigation Bar */}
+      <nav className="bottom-nav-safe md:hidden">
         <button 
           type="button"
           onClick={() => router.push('/')} 
-          className={styles.bottomNavItem}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
         >
-          <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M3 9.5L12 3l9 6.5V20a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 13 20v-5h-2v5A1.5 1.5 0 0 1 9.5 21.5h-5A1.5 1.5 0 0 1 3 20V9.5z"></path>
-            </svg>
-          </div>
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M3 9.5L12 3l9 6.5V20a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 13 20v-5h-2v5A1.5 1.5 0 0 1 9.5 21.5h-5A1.5 1.5 0 0 1 3 20V9.5z"></path>
+          </svg>
           <span>HOME</span>
         </button>
         
         <button 
           type="button"
-          onClick={() => router.push('/collections/suits')} 
-          className={styles.bottomNavItem}
-        >
-          <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M3 9l1-5h16l1 5"></path>
-              <path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"></path>
-              <path d="M9 21V12h6v9"></path>
-            </svg>
-          </div>
-          <span>SHOP</span>
-        </button>
-
-        <button 
-          type="button"
           onClick={() => router.push('/collections/all')} 
-          className={styles.bottomNavItem}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
         >
-          <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-            {wishlist.length > 0 && <span className={styles.bottomNavBadge}>{wishlist.length}</span>}
-          </div>
-          <span>WISHLIST</span>
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M3 9l1-5h16l1 5"></path>
+            <path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"></path>
+            <path d="M9 21V12h6v9"></path>
+          </svg>
+          <span>SHOP</span>
         </button>
 
         <button 
@@ -657,14 +742,14 @@ export default function ProductDetailPage() {
           data-bottom-cart="true"
           type="button"
           onClick={() => router.push('/cart')} 
-          className={styles.bottomNavItem}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
         >
-          <div className={styles.bottomNavIcon}>
+          <div className="relative">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ overflow: 'visible' }}>
               <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z" className="bag-body-path"></path>
               <path d="M16 8V6a4 4 0 0 0-8 0v2" className="bag-handle-path"></path>
             </svg>
-            {cartCount > 0 && <span className={styles.bottomNavBadge}>{cartCount}</span>}
+            {cartCount > 0 && <span className="absolute -top-1 -right-2 bg-[#6b1929] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cartCount}</span>}
           </div>
           <span>CART</span>
         </button>
@@ -673,20 +758,14 @@ export default function ProductDetailPage() {
           type="button"
           onClick={() => {
             const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
-            if (token) {
-              router.push('/profile');
-            } else {
-              router.push('/login');
-            }
+            router.push(token ? '/profile' : '/login');
           }} 
-          className={styles.bottomNavItem}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
         >
-          <div className={styles.bottomNavIcon}>
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-          </div>
+          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
           <span>PROFILE</span>
         </button>
       </nav>
