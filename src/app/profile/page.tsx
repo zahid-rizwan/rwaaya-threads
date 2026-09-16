@@ -858,15 +858,16 @@ export default function ProfilePage() {
 
         <button 
           type="button"
-          onClick={() => router.push('/profile')} 
-          className="flex flex-col items-center gap-1 text-[10px] font-extrabold text-[#6b1929] transition-colors relative py-1"
+          onClick={() => router.push('/wishlist')} 
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-stone-500 hover:text-[#6b1929] transition-colors relative py-1"
         >
-          <div className="w-6 h-0.5 bg-[#6b1929] rounded-full absolute -top-2" />
-          <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <span>PROFILE</span>
+          <div className="relative">
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+            {wishlistIds.length > 0 && <span className="absolute -top-1 -right-2 bg-[#6b1929] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{wishlistIds.length}</span>}
+          </div>
+          <span>WISHLIST</span>
         </button>
       </nav>
     </div>
