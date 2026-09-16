@@ -72,7 +72,14 @@ export default function WishlistPage() {
     animateFlyToCart(sourceElem, product.image);
   };
 
-  const savedProducts = products.filter(p => wishlistIds.includes(String(p.id)));
+  const savedProducts = products.filter(p => {
+    const pIdStr = String(p.id || '');
+    const pMongoIdStr = (p as any)._id ? String((p as any)._id) : '';
+    return wishlistIds.some(wId => {
+      const wIdStr = String(wId);
+      return wIdStr === pIdStr || (Boolean(pMongoIdStr) && wIdStr === pMongoIdStr);
+    });
+  });
 
   return (
     <div className="min-h-screen bg-[#f7efe3] text-[#1a0a0e] font-sans">
@@ -114,6 +121,20 @@ export default function WishlistPage() {
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+
+          <button 
+            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10" 
+            aria-label="Profile"
+            onClick={() => {
+              const token = typeof window !== 'undefined' ? (localStorage.getItem('riwaaya_token') || localStorage.getItem('token')) : null;
+              router.push(token ? '/profile' : '/login');
+            }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </button>
 

@@ -6,11 +6,11 @@
  */
 
 const WISHLIST_STORAGE_KEY = 'riwaaya_wishlist';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('riwaaya_token');
+  return localStorage.getItem('riwaaya_token') || localStorage.getItem('token') || null;
 }
 
 export function getWishlistIds(): string[] {
@@ -28,7 +28,8 @@ export function getWishlistIds(): string[] {
 
 export function isInWishlist(productId: string | number): boolean {
   const ids = getWishlistIds();
-  return ids.includes(String(productId));
+  const targetId = String(productId);
+  return ids.includes(targetId);
 }
 
 export function toggleWishlist(productId: string | number): string[] {
@@ -61,7 +62,13 @@ export function toggleWishlist(productId: string | number): string[] {
       },
       body: JSON.stringify({ productId: sId })
     })
-    .then(res => res.json())
+    .then(res => {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        return res.json();
+      }
+      return null;
+    })
     .then(data => {
       if (data && Array.isArray(data.wishlist)) {
         localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(data.wishlist));
@@ -94,7 +101,8 @@ export async function syncWishlistOnLogin(tokenOverride?: string): Promise<strin
       body: JSON.stringify({ wishlistIds: localIds })
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
       if (data && Array.isArray(data.wishlist)) {
         localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(data.wishlist));
@@ -124,12 +132,15 @@ export async function fetchServerWishlist(): Promise<string[]> {
       }
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
       if (data && Array.isArray(data.wishlist)) {
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(data.wishlist));
-        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: data.wishlist }));
-        return data.wishlist;
+        const local = getWishlistIds();
+        const combined = Array.from(new Set([...data.wishlist, ...local]));
+        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(combined));
+        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: combined }));
+        return combined;
       }
     }
   } catch (err) {
