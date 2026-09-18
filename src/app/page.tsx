@@ -414,7 +414,7 @@ export default function Home() {
                 {/* Product Info below image matching exact reference photo */}
                 <div className="pt-2.5 pb-1 flex flex-col flex-1">
                   <h3 className="font-bold text-stone-900 text-sm sm:text-base uppercase tracking-wider mb-0.5 leading-snug">
-                    {product.sellerShop || product.category || 'RIWAAYA'}
+                    {product.category || 'RIWAAYA'}
                   </h3>
 
                   <p className="text-stone-500 text-xs sm:text-sm font-normal truncate leading-snug mb-1">
