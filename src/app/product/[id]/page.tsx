@@ -48,6 +48,8 @@ export default function ProductDetailPage() {
     getProductById(rawId).then(data => {
       if (data) {
         setProduct(data);
+        const firstAvailableSize = data.variants?.find(v => v.size && v.stock > 0)?.size;
+        if (firstAvailableSize) setSelectedSize(firstAvailableSize.toUpperCase());
         if (data.colors && data.colors.length > 0) {
           const avail = data.colors.find(c => c.inStock !== false);
           if (avail) setSelectedColor(avail.name);
