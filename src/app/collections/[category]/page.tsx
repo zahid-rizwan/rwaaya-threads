@@ -194,6 +194,7 @@ export default function CategoryPage() {
       {/* Top Circular Story Category Bar (Matching Home Page) */}
       <div className="max-w-7xl mx-auto px-4 py-4 overflow-x-auto scrollbar-none flex items-center justify-start sm:justify-center gap-4 sm:gap-8 border-b border-[#b8963e]/20 bg-[#f7efe3]">
         {[
+          { id: 'all', name: 'All Collection', image: '/assets/2131d28031801befa44bd105ec5914c27b763b64.png', tag: 'all' },
           { id: 'suits', name: 'Pakistani Suits', image: '/assets/pakistani_suits.png', tag: 'suits' },
           { id: 'coords', name: 'Co-Ord Sets', image: '/assets/cord_sets.png', tag: 'coords' },
           { id: 'party', name: 'Party Wear', image: '/assets/13960744be005aa72595ea1e43c13afca8050ca4.png', tag: 'party' },
