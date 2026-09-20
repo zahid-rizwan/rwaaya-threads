@@ -196,7 +196,8 @@ export default function ProductDetailPage() {
     ? selectedProduct.images
     : [selectedProduct.image];
   const currentMainImage = productImages[selectedImageIndex] || productImages[0] || selectedProduct.image;
-  const allSizesList = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const availableSizes = Array.from(new Set((selectedProduct.variants || []).filter(v => v.stock > 0 && v.size).map(v => v.size.toUpperCase())));
+  const allSizesList = availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   const getSizeStatus = (sizeName: string) => {
     if (!selectedProduct.variants || selectedProduct.variants.length === 0) {
