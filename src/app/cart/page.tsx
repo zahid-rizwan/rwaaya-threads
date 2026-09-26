@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { fetchCart, updateCartItemQty, removeCartItem, CartData } from '@/lib/api';
+import { fetchCart, updateCartItemQty, removeCartItem, CartData, getValidImageUrl } from '@/lib/api';
 import { subscribeWishlist } from '@/lib/wishlist';
 
 export default function CartPage() {
@@ -323,10 +323,17 @@ export default function CartPage() {
                       onClick={() => toggleSelectItem(item.id)}
                     >
                       <Image 
-                        src={item.image} 
-                        alt={item.name} 
+                        src={getValidImageUrl(item.image)} 
+                        alt={item.name || 'Product Image'} 
                         fill 
-                        className="object-cover object-top" 
+                        className="object-cover object-top"
+                        unoptimized
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target && target.src !== "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png") {
+                            target.src = "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png";
+                          }
+                        }}
                       />
                       <div className={`absolute top-2 left-2 w-5 h-5 rounded-md border border-white flex items-center justify-center text-[10px] font-bold transition-all ${
                         isSelected ? 'bg-[#6b1929] text-white' : 'bg-white/80 text-transparent'

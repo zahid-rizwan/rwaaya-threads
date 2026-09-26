@@ -289,10 +289,10 @@ export default function CategoryPage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {filteredProducts.map((product) => (
               <div 
-                key={product.id} 
+                key={(product as any).cardId || product.id} 
                 className="group flex flex-col cursor-pointer transition-all duration-300" 
                 data-product-card 
-                onClick={() => router.push(`/product/${product.id}`)}
+                onClick={() => router.push(`/product/${product.id}${(product as any).colorName ? `?color=${encodeURIComponent((product as any).colorName)}` : ''}`)}
               >
                 {/* Image Container */}
                 <div className="relative w-full aspect-[3/4] bg-stone-100 overflow-hidden rounded-md border border-stone-200/60 shadow-xs">
@@ -348,9 +348,17 @@ export default function CategoryPage() {
 
                 {/* Product Info below image matching exact reference photo */}
                 <div className="pt-2.5 pb-1 flex flex-col flex-1">
-                  <h3 className="font-bold text-stone-900 text-sm sm:text-base uppercase tracking-wider mb-0.5 leading-snug">
-                    {product.category || 'RIWAAYA'}
-                  </h3>
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <h3 className="font-bold text-stone-900 text-sm sm:text-base uppercase tracking-wider leading-snug">
+                      {product.category || 'RIWAAYA'}
+                    </h3>
+                    {(product as any).colorName && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200">
+                        <span className="w-2.5 h-2.5 rounded-full border border-black/20" style={{ backgroundColor: (product as any).colorHex || '#B8963E' }} />
+                        <span>{(product as any).colorName}</span>
+                      </span>
+                    )}
+                  </div>
 
                   <p className="text-stone-500 text-xs sm:text-sm font-normal truncate leading-snug mb-1">
                     {product.name}

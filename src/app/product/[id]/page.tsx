@@ -48,21 +48,37 @@ export default function ProductDetailPage() {
     getProductById(rawId).then(data => {
       if (data) {
         setProduct(data);
-        const firstAvailableSize = data.variants?.find(v => v.size && v.stock > 0)?.size;
-        if (firstAvailableSize) setSelectedSize(firstAvailableSize.toUpperCase());
-        if (data.colors && data.colors.length > 0) {
-          const avail = data.colors.find(c => c.inStock !== false);
-          if (avail) setSelectedColor(avail.name);
+        const colorOpts = (data.colors && data.colors.length > 0) 
+          ? data.colors 
+          : Array.from(new Set((data.variants || []).map(v => v.color).filter(Boolean))).map(cName => {
+              const vMatch = data.variants?.find(v => v.color === cName);
+              return { name: cName as string, hex: vMatch?.colorHex || '#B8963E', inStock: true };
+            });
+        
+        let initialColor = '';
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          initialColor = urlParams.get('color') || '';
         }
+        
+        const matchedQueryColor = colorOpts.find(c => c.name.toLowerCase() === initialColor.toLowerCase())?.name;
+        const firstColor = matchedQueryColor || colorOpts.find(c => c.inStock !== false)?.name || colorOpts[0]?.name || 'Ivory';
+        setSelectedColor(firstColor);
+
+        const colorVars = (data.variants || []).filter(v => v.color?.toLowerCase() === firstColor.toLowerCase());
+        const firstAvailableSize = colorVars.find(v => v.size && v.stock > 0)?.size || data.variants?.find(v => v.size && v.stock > 0)?.size;
+        if (firstAvailableSize) setSelectedSize(firstAvailableSize.toUpperCase());
         setLoading(false);
       } else {
         getProducts().then(list => {
           if (list && list.length > 0) {
             setProduct(list[0]);
-            if (list[0].colors && list[0].colors.length > 0) {
-              const avail = list[0].colors.find(c => c.inStock !== false);
-              if (avail) setSelectedColor(avail.name);
-            }
+            const p = list[0];
+            const colorOpts = (p.colors && p.colors.length > 0) 
+              ? p.colors 
+              : Array.from(new Set((p.variants || []).map(v => v.color).filter(Boolean))).map(cName => ({ name: cName as string, hex: '#B8963E', inStock: true }));
+            const firstColor = colorOpts[0]?.name || 'Ivory';
+            setSelectedColor(firstColor);
           }
           setLoading(false);
         }).catch(() => setLoading(false));
@@ -194,18 +210,63 @@ export default function ProductDetailPage() {
   }
 
   const selectedProduct = product;
-  const productImages = (selectedProduct.images && selectedProduct.images.length > 0)
+  
+  // 1. Find variants matching the selected color
+  const colorMatchedVariants = (selectedProduct.variants || []).filter(
+    v => !v.color || !selectedColor || v.color.toLowerCase() === selectedColor.toLowerCase()
+  );
+
+  // 2. Find exact variant matching selected color AND selected size
+  const selectedVariant = colorMatchedVariants.find(
+    v => v.size?.toUpperCase() === selectedSize.toUpperCase()
+  ) || selectedProduct.variants?.find(
+    v => v.size?.toUpperCase() === selectedSize.toUpperCase()
+  );
+
+  // 3. Extract color-specific images for dynamic gallery switching
+  const colorSpecificImages: string[] = [];
+  colorMatchedVariants.forEach(v => {
+    if (v.images && v.images.length > 0) {
+      v.images.forEach(img => {
+        if (img && !colorSpecificImages.includes(img)) colorSpecificImages.push(img);
+      });
+    } else if (v.image && !colorSpecificImages.includes(v.image)) {
+      colorSpecificImages.push(v.image);
+    }
+  });
+
+  const variantSpecificImages = (selectedVariant?.images && selectedVariant.images.length > 0)
+    ? selectedVariant.images
+    : (selectedVariant?.image ? [selectedVariant.image] : undefined);
+
+  const productImages = (colorSpecificImages.length > 0 ? colorSpecificImages : (variantSpecificImages || ((selectedProduct.images && selectedProduct.images.length > 0)
     ? selectedProduct.images
-    : [selectedProduct.image];
+    : [selectedProduct.image])));
+
   const currentMainImage = productImages[selectedImageIndex] || productImages[0] || selectedProduct.image;
-  const availableSizes = Array.from(new Set((selectedProduct.variants || []).filter(v => v.stock > 0 && v.size).map(v => v.size.toUpperCase())));
+  
+  const availableSizes = Array.from(new Set(
+    (colorMatchedVariants.length > 0 ? colorMatchedVariants : (selectedProduct.variants || []))
+      .filter(v => v.stock > 0 && v.size)
+      .map(v => v.size.toUpperCase())
+  ));
   const allSizesList = availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+  const activePriceNum = selectedVariant?.price || selectedProduct.rawPrice;
+  const activePriceDisplay = activePriceNum ? `₹${activePriceNum.toLocaleString('en-IN')}` : selectedProduct.price;
+
+  const activeOrigPriceNum = selectedVariant?.originalPrice || selectedProduct.rawOriginalPrice;
+  const activeOrigPriceDisplay = (activeOrigPriceNum && activePriceNum && activeOrigPriceNum > activePriceNum)
+    ? `₹${activeOrigPriceNum.toLocaleString('en-IN')}`
+    : selectedProduct.originalPrice;
 
   const getSizeStatus = (sizeName: string) => {
     if (!selectedProduct.variants || selectedProduct.variants.length === 0) {
       return { isAvailable: true, isOutOfStock: false };
     }
-    const match = selectedProduct.variants.find(
+    const match = colorMatchedVariants.find(
+      v => v.size?.toUpperCase() === sizeName.toUpperCase()
+    ) || selectedProduct.variants.find(
       v => v.size?.toUpperCase() === sizeName.toUpperCase()
     );
     if (!match) return { isAvailable: false, isOutOfStock: true };
@@ -344,11 +405,11 @@ export default function ProductDetailPage() {
           {/* Pricing Row */}
           <div className="flex items-baseline gap-3 flex-wrap pb-4 mb-6 border-b border-[#b8963e]/20">
             <span className="text-2xl md:text-3xl font-extrabold text-[#6b1929] tracking-wide">
-              {selectedProduct.price}
+              {activePriceDisplay}
             </span>
-            {selectedProduct.originalPrice && (
+            {activeOrigPriceDisplay && (
               <span className="text-base md:text-lg text-stone-400 line-through font-serif">
-                {selectedProduct.originalPrice}
+                {activeOrigPriceDisplay}
               </span>
             )}
             {Boolean(selectedProduct.discountPercent) && (
@@ -358,30 +419,77 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Color Selection */}
-          {selectedProduct.colors && selectedProduct.colors.filter(c => c.inStock !== false).length > 0 && (
-            <div className="flex flex-col gap-2.5 mb-6">
-              <label className="text-xs font-bold tracking-widest text-stone-800 uppercase">
-                COLOUR — <span className="text-[#6b1929]">{selectedColor.toUpperCase()}</span>
-              </label>
-              <div className="flex items-center gap-3">
-                {selectedProduct.colors.filter(c => c.inStock !== false).map((color) => (
-                  <button
-                    key={color.name}
-                    className={`w-8 h-8 rounded-full border-2 border-white shadow-sm transition-all duration-200 cursor-pointer ${
-                      selectedColor.toLowerCase() === color.name.toLowerCase() 
-                        ? 'ring-2 ring-offset-2 ring-[#6b1929] scale-110' 
-                        : 'hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color.hex }}
-                    onClick={() => setSelectedColor(color.name)}
-                    title={color.name}
-                    aria-label={`Select color ${color.name}`}
-                  />
-                ))}
+          {/* Color Selection Swatches */}
+          {(() => {
+            const allColorOptions = (selectedProduct.colors && selectedProduct.colors.length > 0)
+              ? selectedProduct.colors
+              : Array.from(new Set((selectedProduct.variants || []).map(v => v.color).filter(Boolean))).map(cName => {
+                  const vMatch = selectedProduct.variants?.find(v => v.color === cName);
+                  return { name: cName as string, hex: vMatch?.colorHex || '#B8963E', inStock: true };
+                });
+
+            if (allColorOptions.length === 0) return null;
+
+            return (
+              <div className="flex flex-col gap-2.5 mb-6  p-3.5 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold tracking-widest text-stone-800 uppercase flex items-center gap-2">
+                    <span>AVAILABLE COLOURS</span>
+                    {/* <span className="text-[#6b1929] font-extrabold">{selectedColor.toUpperCase()}</span> */}
+                  </label>
+                  {/* <span className="text-[11px] text-stone-500 font-semibold">
+                    {allColorOptions.length} {allColorOptions.length === 1 ? 'Color Option' : 'Color Options'}
+                  </span> */}
+                </div>
+                <div className="flex items-center gap-3 flex-wrap pt-1">
+                  {allColorOptions.map((colorObj) => {
+                    const isSelected = selectedColor.toLowerCase() === colorObj.name.toLowerCase();
+                    return (
+                      <button
+                        key={colorObj.name}
+                        type="button"
+                        className={`relative flex items-center justify-center rounded-full transition-all duration-200 cursor-pointer ${
+                          isSelected
+                            ? 'scale-110 shadow-md ring-2 ring-offset-1 ring-black/10'
+                            : colorObj.inStock === false
+                            ? 'opacity-40 cursor-not-allowed'
+                            : 'hover:scale-105 opacity-85 hover:opacity-100'
+                        }`}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          padding: '3px',
+                          backgroundColor: '#ffffff',
+                          border: `2px solid ${colorObj.hex || '#B8963E'}`,
+                          boxShadow: isSelected 
+                            ? `0 0 0 1px ${colorObj.hex || '#B8963E'}` 
+                            : '0 1px 3px rgba(0,0,0,0.12)',
+                        }}
+                        onClick={() => {
+                          setSelectedColor(colorObj.name);
+                          setSelectedImageIndex(0);
+                          const matchColorVars = (selectedProduct.variants || []).filter(
+                            v => v.color?.toLowerCase() === colorObj.name.toLowerCase()
+                          );
+                          const firstInStockSize = matchColorVars.find(v => v.stock > 0)?.size;
+                          if (firstInStockSize) {
+                            setSelectedSize(firstInStockSize.toUpperCase());
+                          }
+                        }}
+                        title={`${colorObj.name} ${colorObj.inStock === false ? '(Out of Stock)' : ''}`}
+                      >
+                        <span
+                          className="w-full h-full rounded-full flex-shrink-0"
+                          style={{ backgroundColor: colorObj.hex || '#B8963E' }}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Size Selection */}
           <div className="flex flex-col gap-2.5 mb-6">
@@ -518,7 +626,7 @@ export default function ProductDetailPage() {
               <p>{selectedProduct.materials || "Pure handloom organic threads, 100% premium silk, cotton-velvet fabric base, and natural dye embellishments."}</p>
             )}
             {activeDetailTab === 'shipping' && (
-              <p>{selectedProduct.shipping || "Free delivery on orders over PKR 5,000. 7-day hassle-free return window and quick exchanges."}</p>
+              <p>{selectedProduct.shipping || "Free delivery on orders over ₹5,000. 7-day hassle-free return window and quick exchanges."}</p>
             )}
           </div>
         </div>

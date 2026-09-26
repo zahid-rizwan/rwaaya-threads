@@ -3,8 +3,12 @@ export interface ProductVariant {
   sku?: string;
   size: string;
   color?: string;
+  colorHex?: string;
   price?: number;
+  originalPrice?: number;
   stock: number;
+  image?: string;
+  images?: string[];
 }
 
 export interface ColorOption {
@@ -23,6 +27,18 @@ export interface Product {
   rawOriginalPrice?: number;
   discountPercent?: number;
   colors?: ColorOption[];
+  groupId?: string;
+  colorName?: string;
+  colorHex?: string;
+  colorVariants?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+    colorHex: string;
+    price: number;
+    image: string;
+  }>;
   image: string;
   images?: string[];
   variants?: ProductVariant[];
@@ -56,6 +72,28 @@ export interface CartData {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
 
+export function getValidImageUrl(url?: string): string {
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    return '/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png';
+  }
+  const clean = url.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean;
+  }
+  if (clean.startsWith('/assets/')) {
+    return clean;
+  }
+  if (clean.startsWith('/media/')) {
+    const origin = (API_BASE_URL || 'http://127.0.0.1:5000/api').replace(/\/api\/?$/, '');
+    return `${origin}${clean}`;
+  }
+  if (clean.startsWith('/')) {
+    return clean;
+  }
+  const origin = (API_BASE_URL || 'http://127.0.0.1:5000/api').replace(/\/api\/?$/, '');
+  return `${origin}/media/${clean}`;
+}
+
 function resolveCategoryName(cat: any, tag?: string): string {
   // 1. Prioritize product tag if provided
   const t = (tag || '').toLowerCase();
@@ -88,6 +126,8 @@ function mapProductItem(item: any): Product {
   const discPct = item.discountPercent !== undefined ? item.discountPercent : (origPriceNum > priceNum ? Math.round(((origPriceNum - priceNum) / origPriceNum) * 100) : 0);
   
   const colorsList: ColorOption[] = Array.isArray(item.colors) ? item.colors : [];
+  const rawImages: string[] = Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")];
+  const validImages = rawImages.map(img => getValidImageUrl(img));
 
   return {
     id: item._id || item.id,
@@ -99,9 +139,15 @@ function mapProductItem(item: any): Product {
     rawOriginalPrice: origPriceNum,
     discountPercent: discPct,
     colors: colorsList,
-    image: Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : (item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png"),
-    images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [(item.image || "/assets/1540aab590cd7d478ad01cdb1a615d469ef2a808.png")],
-    variants: Array.isArray(item.variants) ? item.variants : [],
+    image: validImages[0],
+    images: validImages,
+    variants: Array.isArray(item.variants) ? item.variants.map((v: any) => ({
+      ...v,
+      price: v.price ? Number(v.price) : undefined,
+      originalPrice: v.originalPrice ? Number(v.originalPrice) : undefined,
+      image: v.image ? getValidImageUrl(v.image) : undefined,
+      images: Array.isArray(v.images) && v.images.length > 0 ? v.images.map((img: string) => getValidImageUrl(img)) : undefined
+    })) : [],
     badge: item.badge,
     tag: item.tag || 'suits',
     description: item.description,
@@ -171,7 +217,14 @@ export async function fetchCart(): Promise<CartData> {
     });
     if (res.ok) {
       const payload = await res.json();
-      return (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
+      const cartData: CartData = (payload && typeof payload === 'object' && 'data' in payload) ? payload.data : payload;
+      if (cartData && Array.isArray(cartData.items)) {
+        cartData.items = cartData.items.map(item => ({
+          ...item,
+          image: getValidImageUrl(item.image)
+        }));
+      }
+      return cartData;
     }
   } catch (err) {
     console.error('Error fetching live cart from backend API:', err);
