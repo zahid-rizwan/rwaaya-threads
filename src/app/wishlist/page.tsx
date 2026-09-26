@@ -56,14 +56,16 @@ export default function WishlistPage() {
   const handleAddToCart = (product: Product, event: React.MouseEvent) => {
     event.stopPropagation();
     
+    const itemColor = product.colorName || (product.colors && product.colors.length > 0 ? product.colors[0].name : '') || 'Standard';
     const prodDetails = {
       name: product.name,
       price: product.rawPrice || parseFloat(product.price.replace(/[^\d.]/g, '')) || 18500,
       image: product.image,
-      category: product.category
+      category: product.category,
+      color: itemColor
     };
 
-    addCartItem(String(product.id), 'M', 1, 'Ivory', prodDetails).then(updated => {
+    addCartItem(String(product.id), 'M', 1, itemColor, prodDetails).then(updated => {
       if (updated && updated.items) setCartCount(updated.items.length);
     });
     setCartCount(prev => prev + 1);
@@ -136,23 +138,6 @@ export default function WishlistPage() {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-          </button>
-
-          <button 
-            id="cart-icon-header"
-            className="p-1.5 text-stone-800 hover:text-[#6b1929] transition-colors rounded-lg hover:bg-[#b8963e]/10 relative" 
-            aria-label="Shopping Bag"
-            onClick={() => router.push('/cart')}
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M6 21h12a2 2 0 0 0 2-2V8H4v11a2 2 0 0 0 2 2z"></path>
-              <path d="M16 8V6a4 4 0 0 0-8 0v2"></path>
-            </svg>
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#6b1929] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
-            )}
           </button>
         </div>
       </header>

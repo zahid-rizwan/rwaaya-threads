@@ -105,14 +105,16 @@ export default function CategoryPage() {
 
   const addToBag = (productId: string | number, eventOrElem?: React.MouseEvent | HTMLElement, imgSrc?: string) => {
     const p = productsList.find(item => String(item.id) === String(productId));
+    const itemColor = p?.colorName || (p?.colors && p.colors.length > 0 ? p.colors[0].name : '') || 'Standard';
     const prodDetails = p ? {
       name: p.name,
       price: p.rawPrice || parseFloat(p.price.replace(/[^\d.]/g, '')) || 18500,
-      image: p.image,
-      category: p.category
+      image: imgSrc || p.image,
+      category: p.category,
+      color: itemColor
     } : undefined;
 
-    addCartItem(String(productId), 'M', 1, 'Ivory', prodDetails).then(updated => {
+    addCartItem(String(productId), 'M', 1, itemColor, prodDetails).then(updated => {
       if (updated && updated.items) setCartCount(updated.items.length);
     });
     setCartCount(prev => prev + 1);

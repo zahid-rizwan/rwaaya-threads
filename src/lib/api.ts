@@ -48,6 +48,8 @@ export interface Product {
   materials?: string;
   shipping?: string;
   sellerShop?: string;
+  productType?: 'readymade' | 'unstitched';
+  isReadymade?: boolean;
 }
 
 export interface CartItem {
@@ -153,7 +155,9 @@ function mapProductItem(item: any): Product {
     description: item.description,
     materials: item.materials,
     shipping: item.shipping,
-    sellerShop: item.seller?.shopName
+    sellerShop: item.seller?.shopName,
+    productType: item.productType || item.product_type || 'readymade',
+    isReadymade: (item.productType || item.product_type || 'readymade') === 'readymade'
   };
 }
 
