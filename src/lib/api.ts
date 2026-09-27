@@ -247,10 +247,11 @@ export async function addCartItem(
   productId: string, 
   size = 'M', 
   quantity = 1, 
-  color = 'Ivory',
-  productData?: { name?: string; price?: number; image?: string; category?: string }
+  color?: string,
+  productData?: { name?: string; price?: number; image?: string; category?: string; color?: string; variantId?: string; sku?: string }
 ): Promise<CartData> {
   const sid = getSessionId();
+  const targetColor = color || productData?.color || 'Standard';
   try {
     const res = await fetch(`${API_BASE_URL}/cart`, {
       method: 'POST',
@@ -262,7 +263,9 @@ export async function addCartItem(
         productId, 
         size, 
         quantity, 
-        color, 
+        color: targetColor,
+        variantId: productData?.variantId,
+        sku: productData?.sku,
         sessionId: sid,
         name: productData?.name,
         price: productData?.price,

@@ -145,11 +145,20 @@ export default function ProductDetailPage() {
       ? selectedProduct 
       : relatedProducts.find(item => String(item.id) === String(productId));
 
+    const matchedVariant = p?.variants?.find(
+      v => (v.color?.toLowerCase() === selectedColor.toLowerCase()) && (v.size?.toUpperCase() === selectedSize.toUpperCase())
+    ) || p?.variants?.find(
+      v => v.color?.toLowerCase() === selectedColor.toLowerCase()
+    );
+
     const prodDetails = p ? {
       name: p.name,
-      price: p.rawPrice || parseFloat(p.price.replace(/[^\d.]/g, '')) || 18500,
-      image: p.image,
-      category: p.category
+      price: activePriceNum || p.rawPrice || parseFloat(p.price.replace(/[^\d.]/g, '')) || 18500,
+      image: currentMainImage || p.image,
+      category: p.category,
+      color: selectedColor,
+      variantId: matchedVariant?.id,
+      sku: matchedVariant?.sku
     } : undefined;
 
     addCartItem(String(productId), selectedSize, productQuantity, selectedColor, prodDetails).then(updated => {

@@ -422,7 +422,7 @@ export default function Home() {
                     {(product as any).colorName && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200">
                         <span className="w-2.5 h-2.5 rounded-full border border-black/20" style={{ backgroundColor: (product as any).colorHex || '#B8963E' }} />
-                        <span>{(product as any).colorName}</span>
+                        {/* <span>{(product as any).colorName}</span> */}
                       </span>
                     )}
                   </div>
