@@ -19,7 +19,10 @@ export function getWishlistIds(): string[] {
     const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(id => String(id || '').trim())
+      .filter(id => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
   } catch (err) {
     console.error('Error reading wishlist from localStorage:', err);
     return [];
@@ -28,13 +31,16 @@ export function getWishlistIds(): string[] {
 
 export function isInWishlist(productId: string | number): boolean {
   const ids = getWishlistIds();
-  const targetId = String(productId);
+  const targetId = String(productId || '').trim();
+  if (!targetId || targetId === 'null' || targetId === 'undefined' || targetId === 'None') return false;
   return ids.includes(targetId);
 }
 
 export function toggleWishlist(productId: string | number): string[] {
   if (typeof window === 'undefined') return [];
-  const sId = String(productId);
+  const sId = String(productId || '').trim();
+  if (!sId || sId === 'null' || sId === 'undefined' || sId === 'None') return getWishlistIds();
+
   const current = getWishlistIds();
   
   let updated: string[];
@@ -71,8 +77,11 @@ export function toggleWishlist(productId: string | number): string[] {
     })
     .then(data => {
       if (data && Array.isArray(data.wishlist)) {
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(data.wishlist));
-        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: data.wishlist }));
+        const cleanWishlist = data.wishlist
+          .map((id: any) => String(id || '').trim())
+          .filter((id: string) => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
+        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(cleanWishlist));
+        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: cleanWishlist }));
       }
     })
     .catch(err => console.error('Failed to sync wishlist toggle with backend:', err));
@@ -105,9 +114,12 @@ export async function syncWishlistOnLogin(tokenOverride?: string): Promise<strin
     if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
       if (data && Array.isArray(data.wishlist)) {
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(data.wishlist));
-        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: data.wishlist }));
-        return data.wishlist;
+        const cleanWishlist = data.wishlist
+          .map((id: any) => String(id || '').trim())
+          .filter((id: string) => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
+        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(cleanWishlist));
+        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: cleanWishlist }));
+        return cleanWishlist;
       }
     }
   } catch (err) {
@@ -137,7 +149,10 @@ export async function fetchServerWishlist(): Promise<string[]> {
       const data = await res.json();
       if (data && Array.isArray(data.wishlist)) {
         const local = getWishlistIds();
-        const combined = Array.from(new Set([...data.wishlist, ...local]));
+        const serverClean = data.wishlist
+          .map((id: any) => String(id || '').trim())
+          .filter((id: string) => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
+        const combined = Array.from(new Set([...serverClean, ...local]));
         localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(combined));
         window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: combined }));
         return combined;

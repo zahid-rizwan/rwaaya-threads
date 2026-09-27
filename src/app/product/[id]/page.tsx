@@ -60,8 +60,8 @@ export default function ProductDetailPage() {
           const urlParams = new URLSearchParams(window.location.search);
           initialColor = urlParams.get('color') || '';
         }
-        if (!initialColor && String(productId).includes('_')) {
-          const rawColorPart = String(productId).split('_').slice(1).join(' ');
+        if (!initialColor && String(rawId).includes('_')) {
+          const rawColorPart = String(rawId).split('_').slice(1).join(' ');
           initialColor = rawColorPart.replace(/-/g, ' ');
         }
         

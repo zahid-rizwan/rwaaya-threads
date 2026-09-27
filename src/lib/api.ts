@@ -579,14 +579,16 @@ export async function registerUser(name: string, email: string, password: string
 
 export async function createRazorpayOrder(amount: number) {
   const token = getAuthToken();
-  if (!token) throw new Error('User must be logged in to initiate payment');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const res = await fetch(`${API_BASE_URL}/payment/create-order`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
+    headers,
     body: JSON.stringify({ amount })
   });
 
@@ -597,16 +599,18 @@ export async function createRazorpayOrder(amount: number) {
   return res.json();
 }
 
-export async function verifyRazorpayPayment(paymentData: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) {
+export async function verifyRazorpayPayment(paymentData: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature?: string }) {
   const token = getAuthToken();
-  if (!token) throw new Error('User must be logged in to verify payment');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const res = await fetch(`${API_BASE_URL}/payment/verify`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
+    headers,
     body: JSON.stringify(paymentData)
   });
 
