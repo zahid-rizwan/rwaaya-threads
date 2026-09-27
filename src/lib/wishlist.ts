@@ -18,11 +18,25 @@ export function getWishlistIds(): string[] {
   try {
     const raw = localStorage.getItem(WISHLIST_STORAGE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify([]));
+      return [];
+    }
+    if (!Array.isArray(parsed)) {
+      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify([]));
+      return [];
+    }
+    const cleaned = parsed
       .map(id => String(id || '').trim())
-      .filter(id => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
+      .filter(id => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None' && id !== '[]' && id !== '{}' && id !== 'default');
+
+    if (cleaned.length !== parsed.length || (cleaned.length === 0 && raw !== '[]')) {
+      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch (err) {
     console.error('Error reading wishlist from localStorage:', err);
     return [];
