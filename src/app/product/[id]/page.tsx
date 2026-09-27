@@ -60,8 +60,13 @@ export default function ProductDetailPage() {
           const urlParams = new URLSearchParams(window.location.search);
           initialColor = urlParams.get('color') || '';
         }
+        if (!initialColor && String(productId).includes('_')) {
+          const rawColorPart = String(productId).split('_').slice(1).join(' ');
+          initialColor = rawColorPart.replace(/-/g, ' ');
+        }
         
-        const matchedQueryColor = colorOpts.find(c => c.name.toLowerCase() === initialColor.toLowerCase())?.name;
+        const matchedQueryColor = colorOpts.find(c => c.name.toLowerCase() === initialColor.toLowerCase())?.name
+          || colorOpts.find(c => c.name.toLowerCase().includes(initialColor.toLowerCase()))?.name;
         const firstColor = matchedQueryColor || colorOpts.find(c => c.inStock !== false)?.name || colorOpts[0]?.name || 'Ivory';
         setSelectedColor(firstColor);
 
@@ -558,19 +563,30 @@ export default function ProductDetailPage() {
               {isCurrentSizeOutOfStock ? "OUT OF STOCK" : "ADD TO BAG"}
             </button>
 
-            <button
-              onClick={() => toggleWishlistStore(String(selectedProduct.id))}
-              className={`w-12 h-12 rounded-md border flex flex-shrink-0 items-center justify-center transition-all ${
-                wishlist.includes(String(selectedProduct.id))
-                  ? 'bg-[#6b1929] border-[#6b1929] text-white shadow-md'
-                  : 'bg-white border-[#b8963e]/40 text-stone-700 hover:text-[#6b1929] hover:border-[#6b1929]'
-              }`}
-              title={wishlist.includes(String(selectedProduct.id)) ? "Remove from Wishlist" : "Save to Wishlist"}
-            >
-              <svg width="20" height="20" fill={wishlist.includes(String(selectedProduct.id)) ? "#ffffff" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-              </svg>
-            </button>
+            {(() => {
+              const colorSlug = selectedColor ? selectedColor.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : '';
+              const colorOpts = selectedProduct.colors || [];
+              const targetWishlistId = (colorOpts.length > 1 && colorSlug)
+                ? `${String(selectedProduct.id).split('_')[0]}_${colorSlug}`
+                : String(selectedProduct.id);
+              const isItemWishlisted = wishlist.includes(targetWishlistId);
+
+              return (
+                <button
+                  onClick={() => toggleWishlistStore(targetWishlistId)}
+                  className={`w-12 h-12 rounded-md border flex flex-shrink-0 items-center justify-center transition-all ${
+                    isItemWishlisted
+                      ? 'bg-[#6b1929] border-[#6b1929] text-white shadow-md'
+                      : 'bg-white border-[#b8963e]/40 text-stone-700 hover:text-[#6b1929] hover:border-[#6b1929]'
+                  }`}
+                  title={isItemWishlisted ? "Remove from Wishlist" : "Save to Wishlist"}
+                >
+                  <svg width="20" height="20" fill={isItemWishlisted ? "#ffffff" : "none"} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                </button>
+              );
+            })()}
           </div>
 
           {/* Assurances Row */}
