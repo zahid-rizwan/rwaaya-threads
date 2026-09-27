@@ -363,6 +363,11 @@ export default function CartPage() {
 
                       {/* Size & Quantity Controls Row */}
                       <div className="flex items-center gap-3 flex-wrap my-2">
+                        {item.color && (
+                          <div className="bg-stone-100 px-2.5 py-1 rounded-md text-xs font-semibold text-stone-700">
+                            Color: <strong className="text-stone-900">{item.color}</strong>
+                          </div>
+                        )}
                         <div className="bg-stone-100 px-2.5 py-1 rounded-md text-xs font-semibold text-stone-700">
                           Size: <strong className="text-stone-900">{item.size}</strong>
                         </div>
