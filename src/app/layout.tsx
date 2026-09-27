@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   title: "Riwaaya Threads | Luxury Pakistani Couture & Ethnic Wear",
   description: "Discover handcrafted Pakistani suits, co-ord sets, and ethnic wear. Experience timeless South Asian heritage meets modern couture.",
   keywords: ["Pakistani Suits", "Co-ord Sets", "Ethnic Wear", "Lawn", "Chiffon", "Organza", "Bridal Couture", "Luxury Fashion", "Riwaaya"],
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/assets/riwaaya_logo.png", type: "image/png" }
+    ],
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
