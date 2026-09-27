@@ -141,6 +141,10 @@ function mapProductItem(item: any): Product {
     rawOriginalPrice: origPriceNum,
     discountPercent: discPct,
     colors: colorsList,
+    groupId: item.groupId || item.group_id,
+    colorName: item.colorName || item.color_name || item.color || (String(item.id || item._id).includes('_') ? String(item.id || item._id).split('_').slice(1).join(' ').replace(/-/g, ' ') : undefined),
+    colorHex: item.colorHex || item.color_hex,
+    colorVariants: item.colorVariants || item.color_variants,
     image: validImages[0],
     images: validImages,
     variants: Array.isArray(item.variants) ? item.variants.map((v: any) => ({
@@ -251,7 +255,12 @@ export async function addCartItem(
   productData?: { name?: string; price?: number; image?: string; category?: string; color?: string; variantId?: string; sku?: string }
 ): Promise<CartData> {
   const sid = getSessionId();
-  const targetColor = color || productData?.color || 'Standard';
+  let targetColor = color || productData?.color || '';
+  if ((!targetColor || targetColor === 'Standard') && String(productId).includes('_')) {
+    const rawColorPart = String(productId).split('_').slice(1).join(' ');
+    targetColor = rawColorPart.replace(/-/g, ' ');
+  }
+  if (!targetColor) targetColor = 'Standard';
   try {
     const res = await fetch(`${API_BASE_URL}/cart`, {
       method: 'POST',
