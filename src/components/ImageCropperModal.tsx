@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -23,6 +23,15 @@ export default function ImageCropperModal({ imageSrc, onCropComplete, onCancel }
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
   const aspect = 3 / 4;
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
@@ -72,7 +81,7 @@ export default function ImageCropperModal({ imageSrc, onCropComplete, onCancel }
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: 'rgba(0, 0, 0, 0.8)',
       display: 'flex', justifyContent: 'center', alignItems: 'center',
-      zIndex: 9999, padding: '20px'
+      zIndex: 9999, padding: '20px', overflowY: 'auto'
     }}>
       <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '16px', maxWidth: '600px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>

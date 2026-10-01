@@ -7,6 +7,7 @@
 
 const WISHLIST_STORAGE_KEY = 'riwaaya_wishlist';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+let wishlistRevision = 0;
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -56,6 +57,7 @@ export function toggleWishlist(productId: string | number): string[] {
   if (!sId || sId === 'null' || sId === 'undefined' || sId === 'None') return getWishlistIds();
 
   const current = getWishlistIds();
+  wishlistRevision += 1;
   
   let updated: string[];
   if (current.includes(sId)) {
@@ -113,6 +115,7 @@ export async function syncWishlistOnLogin(tokenOverride?: string): Promise<strin
   if (!token) return getWishlistIds();
 
   const localIds = getWishlistIds();
+  wishlistRevision += 1;
 
   try {
     const res = await fetch(`${API_BASE}/wishlist/sync`, {
@@ -150,6 +153,7 @@ export async function fetchServerWishlist(): Promise<string[]> {
   if (typeof window === 'undefined') return [];
   const token = getToken();
   if (!token) return getWishlistIds();
+  const requestRevision = wishlistRevision;
 
   try {
     const res = await fetch(`${API_BASE}/wishlist`, {
@@ -162,14 +166,13 @@ export async function fetchServerWishlist(): Promise<string[]> {
     if (res.ok && contentType.includes('application/json')) {
       const data = await res.json();
       if (data && Array.isArray(data.wishlist)) {
-        const local = getWishlistIds();
+        if (requestRevision !== wishlistRevision) return getWishlistIds();
         const serverClean = data.wishlist
           .map((id: any) => String(id || '').trim())
           .filter((id: string) => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
-        const combined = Array.from(new Set([...serverClean, ...local]));
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(combined));
-        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: combined }));
-        return combined;
+        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(serverClean));
+        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: serverClean }));
+        return serverClean;
       }
     }
   } catch (err) {

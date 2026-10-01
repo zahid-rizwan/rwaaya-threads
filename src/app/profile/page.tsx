@@ -47,6 +47,17 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
+    if (!showAddressModal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showAddressModal]);
+
+  useEffect(() => {
     // Check Auth Token
     const token = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_token') : null;
     const rawUser = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_user') : null;
@@ -646,8 +657,9 @@ export default function ProfilePage() {
 
         {/* Add / Edit Location Modal */}
         {showAddressModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-[#fffdfa] rounded-xl max-w-md w-full p-6 sm:p-8 border border-[#b8963e]/40 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm p-4">
+            <div className="flex min-h-full items-center justify-center">
+              <div className="bg-[#fffdfa] rounded-xl max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto p-6 sm:p-8 border border-[#b8963e]/40 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
               <button 
                 onClick={() => setShowAddressModal(false)}
                 className="absolute top-5 right-5 text-stone-400 hover:text-[#6b1929] text-lg font-bold transition-colors"
@@ -774,6 +786,7 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
+              </div>
             </div>
           </div>
         )}
