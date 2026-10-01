@@ -195,9 +195,6 @@ export function subscribeWishlist(callback: (ids: string[]) => void): () => void
   // Initial call
   callback(getWishlistIds());
 
-  // Attempt background sync if logged in
-  fetchServerWishlist().catch(() => {});
-
   return () => {
     window.removeEventListener('riwaaya_wishlist_updated', handleUpdate);
     window.removeEventListener('storage', handleUpdate);
