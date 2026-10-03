@@ -5,14 +5,11 @@
  * - Logged-in Users: Real-time API sync with backend database (like Myntra) + automatic merge on login
  */
 
+import { authenticatedFetch, getValidAuthToken } from '@/lib/api';
+
 const WISHLIST_STORAGE_KEY = 'riwaaya_wishlist';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
 let wishlistRevision = 0;
-
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('riwaaya_token') || localStorage.getItem('token') || null;
-}
 
 export function getWishlistIds(): string[] {
   if (typeof window === 'undefined') return [];
@@ -74,34 +71,34 @@ export function toggleWishlist(productId: string | number): string[] {
   }
 
   // If user is logged in, sync change to backend asynchronously
-  const token = getToken();
-  if (token) {
-    fetch(`${API_BASE}/wishlist/toggle`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ productId: sId })
-    })
-    .then(res => {
-      const contentType = res.headers.get('content-type') || '';
-      if (res.ok && contentType.includes('application/json')) {
-        return res.json();
-      }
-      return null;
-    })
-    .then(data => {
-      if (data && Array.isArray(data.wishlist)) {
-        const cleanWishlist = data.wishlist
-          .map((id: any) => String(id || '').trim())
-          .filter((id: string) => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(cleanWishlist));
-        window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: cleanWishlist }));
-      }
-    })
-    .catch(err => console.error('Failed to sync wishlist toggle with backend:', err));
-  }
+  getValidAuthToken().then(token => {
+    if (token) {
+      authenticatedFetch(`${API_BASE}/wishlist/toggle`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ productId: sId })
+      })
+      .then(res => {
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          return res.json();
+        }
+        return null;
+      })
+      .then(data => {
+        if (data && Array.isArray(data.wishlist)) {
+          const cleanWishlist = data.wishlist
+            .map((id: any) => String(id || '').trim())
+            .filter((id: string) => id.length > 0 && id !== 'null' && id !== 'undefined' && id !== 'None');
+          localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(cleanWishlist));
+          window.dispatchEvent(new CustomEvent('riwaaya_wishlist_updated', { detail: cleanWishlist }));
+        }
+      })
+      .catch(err => console.error('Failed to sync wishlist toggle with backend:', err));
+    }
+  });
 
   return updated;
 }
@@ -111,18 +108,17 @@ export function toggleWishlist(productId: string | number): string[] {
  */
 export async function syncWishlistOnLogin(tokenOverride?: string): Promise<string[]> {
   if (typeof window === 'undefined') return [];
-  const token = tokenOverride || getToken();
+  const token = tokenOverride || await getValidAuthToken();
   if (!token) return getWishlistIds();
 
   const localIds = getWishlistIds();
   wishlistRevision += 1;
 
   try {
-    const res = await fetch(`${API_BASE}/wishlist/sync`, {
+    const res = await authenticatedFetch(`${API_BASE}/wishlist/sync`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({ wishlistIds: localIds })
     });
@@ -151,16 +147,12 @@ export async function syncWishlistOnLogin(tokenOverride?: string): Promise<strin
  */
 export async function fetchServerWishlist(): Promise<string[]> {
   if (typeof window === 'undefined') return [];
-  const token = getToken();
+  const token = await getValidAuthToken();
   if (!token) return getWishlistIds();
   const requestRevision = wishlistRevision;
 
   try {
-    const res = await fetch(`${API_BASE}/wishlist`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const res = await authenticatedFetch(`${API_BASE}/wishlist`, {});
 
     const contentType = res.headers.get('content-type') || '';
     if (res.ok && contentType.includes('application/json')) {

@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { loginUser, registerUser, mergeGuestCart } from '@/lib/api';
+import { loginUser, registerUser, mergeGuestCart, setAuthTokens } from '@/lib/api';
 import { syncWishlistOnLogin } from '@/lib/wishlist';
 
 function LoginForm() {
@@ -27,11 +27,12 @@ function LoginForm() {
     try {
       if (isLoginMode) {
         const res = await loginUser(email, password);
-        if (res && res.token && res.user) {
-          localStorage.setItem('riwaaya_token', res.token);
+        const token = res?.token || res?.access;
+        if (res && token && res.user) {
+          setAuthTokens(token, res.refresh || res.refreshToken);
           localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
           await mergeGuestCart();
-          await syncWishlistOnLogin(res.token);
+          await syncWishlistOnLogin(token);
           router.push(redirectTarget);
         } else {
           setErrorMsg(res?.message || 'Invalid email or password. Please try again.');
@@ -43,11 +44,12 @@ function LoginForm() {
           return;
         }
         const res = await registerUser(name, email, password);
-        if (res && res.token && res.user) {
-          localStorage.setItem('riwaaya_token', res.token);
+        const token = res?.token || res?.access;
+        if (res && token && res.user) {
+          setAuthTokens(token, res.refresh || res.refreshToken);
           localStorage.setItem('riwaaya_user', JSON.stringify(res.user));
           await mergeGuestCart();
-          await syncWishlistOnLogin(res.token);
+          await syncWishlistOnLogin(token);
           router.push(redirectTarget);
         } else {
           setErrorMsg(res?.message || 'Registration failed. Please check details.');

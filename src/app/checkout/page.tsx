@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { fetchCart, createOrder, clearCart, createRazorpayOrder, verifyRazorpayPayment, CartData } from '@/lib/api';
+import { fetchCart, createOrder, clearCart, createRazorpayOrder, verifyRazorpayPayment, getValidAuthToken, CartData } from '@/lib/api';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -22,44 +22,48 @@ export default function CheckoutPage() {
   const [pincode, setPincode] = useState<string>('');
 
   useEffect(() => {
-    // Check Auth
-    const token = typeof window !== 'undefined' ? (localStorage.getItem('riwaaya_token') || localStorage.getItem('token')) : null;
-    if (!token) {
-      router.push('/login?redirect=/checkout');
-      return;
-    }
+    async function initCheckout() {
+      // Check Auth & Auto-refresh token if needed
+      const token = await getValidAuthToken();
+      if (!token) {
+        router.push('/login?redirect=/checkout');
+        return;
+      }
 
-    const rawUser = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_user') : null;
-    if (rawUser) {
-      try {
-        const u = JSON.parse(rawUser);
-        if (u.name) setFullName(u.name);
-        if (u.phone) setPhone(u.phone);
-      } catch (e) {}
-    }
+      const rawUser = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_user') : null;
+      if (rawUser) {
+        try {
+          const u = JSON.parse(rawUser);
+          if (u.name) setFullName(u.name);
+          if (u.phone) setPhone(u.phone);
+        } catch (e) {}
+      }
 
-    // Pre-fill from user's own saved addresses
-    const rawAddresses = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_user_addresses') : null;
-    if (rawAddresses) {
-      try {
-        const list = JSON.parse(rawAddresses);
-        if (Array.isArray(list) && list.length > 0) {
-          const defaultAddr = list.find((a: any) => a.isDefault) || list[0];
-          if (defaultAddr) {
-            if (defaultAddr.name) setFullName(defaultAddr.name);
-            if (defaultAddr.phone) setPhone(defaultAddr.phone);
-            if (defaultAddr.street) setStreet(defaultAddr.street);
-            if (defaultAddr.city) setCity(defaultAddr.city);
-            if (defaultAddr.state) setState(defaultAddr.state);
-            if (defaultAddr.pincode) setPincode(defaultAddr.pincode);
+      // Pre-fill from user's own saved addresses
+      const rawAddresses = typeof window !== 'undefined' ? localStorage.getItem('riwaaya_user_addresses') : null;
+      if (rawAddresses) {
+        try {
+          const list = JSON.parse(rawAddresses);
+          if (Array.isArray(list) && list.length > 0) {
+            const defaultAddr = list.find((a: any) => a.isDefault) || list[0];
+            if (defaultAddr) {
+              if (defaultAddr.name) setFullName(defaultAddr.name);
+              if (defaultAddr.phone) setPhone(defaultAddr.phone);
+              if (defaultAddr.street) setStreet(defaultAddr.street);
+              if (defaultAddr.city) setCity(defaultAddr.city);
+              if (defaultAddr.state) setState(defaultAddr.state);
+              if (defaultAddr.pincode) setPincode(defaultAddr.pincode);
+            }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
+
+      const c = await fetchCart();
+      setCart(c);
+      setLoading(false);
     }
 
-    fetchCart().then((c) => {
-      setCart(c);
-    }).finally(() => setLoading(false));
+    initCheckout();
   }, [router]);
 
   const loadRazorpayScript = (): Promise<boolean> => {

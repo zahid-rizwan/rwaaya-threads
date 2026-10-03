@@ -333,14 +333,147 @@ export async function removeCartItem(itemId: string): Promise<CartData> {
   return fetchCart();
 }
 
-// ======================== AUTH TOKEN HELPER ========================
+// ======================== AUTH TOKEN HELPER & AUTO REFRESH ========================
 
-const getAuthToken = (): string | null => {
+export function parseJwt(token: string): any {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function isTokenExpired(token: string | null, offsetSeconds = 30): boolean {
+  if (!token) return true;
+  const payload = parseJwt(token);
+  if (!payload || !payload.exp) return false;
+  const currentTime = Math.floor(Date.now() / 1000);
+  return currentTime >= (payload.exp - offsetSeconds);
+}
+
+export function getAuthToken(): string | null {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('riwaaya_token') || localStorage.getItem('token') || null;
   }
   return null;
-};
+}
+
+export function getRefreshToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('riwaaya_refresh') || localStorage.getItem('refreshToken') || null;
+  }
+  return null;
+}
+
+export function setAuthTokens(access: string, refresh?: string) {
+  if (typeof window !== 'undefined') {
+    if (access) {
+      localStorage.setItem('riwaaya_token', access);
+      localStorage.setItem('token', access);
+    }
+    if (refresh) {
+      localStorage.setItem('riwaaya_refresh', refresh);
+      localStorage.setItem('refreshToken', refresh);
+    }
+    window.dispatchEvent(new Event('authTokensUpdated'));
+  }
+}
+
+export function clearAuthTokens() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('riwaaya_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('riwaaya_refresh');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('riwaaya_user');
+    window.dispatchEvent(new Event('authLogout'));
+  }
+}
+
+let refreshPromise: Promise<string | null> | null = null;
+
+export async function refreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshToken = getRefreshToken();
+  if (!refreshToken || isTokenExpired(refreshToken, 0)) {
+    clearAuthTokens();
+    return null;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh: refreshToken, refreshToken })
+      });
+
+      if (res.ok) {
+        const payload = await res.json();
+        const newAccess = payload.access || payload.token;
+        const newRefresh = payload.refresh || payload.refreshToken || refreshToken;
+
+        if (newAccess) {
+          setAuthTokens(newAccess, newRefresh);
+          return newAccess as string;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh access token:', err);
+    } finally {
+      refreshPromise = null;
+    }
+
+    clearAuthTokens();
+    return null;
+  })();
+
+  return refreshPromise;
+}
+
+export async function getValidAuthToken(): Promise<string | null> {
+  const token = getAuthToken();
+  if (!token) return null;
+
+  if (isTokenExpired(token, 30)) {
+    return await refreshAccessToken();
+  }
+
+  return token;
+}
+
+export async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  let token = await getValidAuthToken();
+
+  const headers = new Headers(options.headers || {});
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  let response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 && getRefreshToken()) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      headers.set('Authorization', `Bearer ${newToken}`);
+      response = await fetch(url, { ...options, headers });
+    }
+  }
+
+  return response;
+}
 
 // ======================== CART MERGE (Guest → User) ========================
 
@@ -351,7 +484,7 @@ const getAuthToken = (): string | null => {
  */
 export async function mergeGuestCart(): Promise<CartData> {
   const sid = getSessionId();
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
 
   if (!token) {
     console.log('No auth token found, skipping cart merge.');
@@ -359,11 +492,10 @@ export async function mergeGuestCart(): Promise<CartData> {
   }
 
   try {
-    const res = await fetch(`${API_BASE_URL}/cart/merge`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/cart/merge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
         'x-session-id': sid
       },
       body: JSON.stringify({ sessionId: sid })
@@ -383,14 +515,6 @@ export async function mergeGuestCart(): Promise<CartData> {
 
 export async function clearCart(): Promise<CartData> {
   const sid = getSessionId();
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    'x-session-id': sid
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const emptyCart: CartData = {
     items: [],
     subtotal: 0,
@@ -400,9 +524,9 @@ export async function clearCart(): Promise<CartData> {
   };
 
   try {
-    const res = await fetch(`${API_BASE_URL}/cart?sessionId=${sid}`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/cart?sessionId=${sid}`, {
       method: 'DELETE',
-      headers
+      headers: { 'x-session-id': sid }
     });
     if (res.ok) {
       const payload = await res.json();
@@ -428,16 +552,15 @@ export async function createOrder(orderData: {
   shippingAddress: { fullName: string; phone: string; address: string; city: string; postalCode?: string };
   paymentMethod?: string;
 }) {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   if (!token) throw new Error('User must be logged in to place an order');
 
   let createdOrder: any = null;
   try {
-    const res = await fetch(`${API_BASE_URL}/orders`, {
+    const res = await authenticatedFetch(`${API_BASE_URL}/orders`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(orderData)
     });
@@ -478,7 +601,7 @@ export async function createOrder(orderData: {
 }
 
 export async function getMyOrders() {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   let localOrders: any[] = [];
   if (typeof window !== 'undefined') {
     try {
@@ -490,10 +613,7 @@ export async function getMyOrders() {
   if (!token) return localOrders;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/orders/myorders`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
+    const res = await authenticatedFetch(`${API_BASE_URL}/orders/myorders`, {
       cache: 'no-store'
     });
 
@@ -517,13 +637,10 @@ export async function getMyOrders() {
 }
 
 export async function getOrderById(orderId: string) {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
+  const res = await authenticatedFetch(`${API_BASE_URL}/orders/${orderId}`, {
     cache: 'no-store'
   });
 
@@ -551,6 +668,9 @@ export async function loginUser(email: string, password: string) {
     const contentType = res.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       const data = await res.json();
+      if (data && (data.token || data.access)) {
+        setAuthTokens(data.token || data.access, data.refresh || data.refreshToken);
+      }
       return data;
     } else {
       const text = await res.text();
@@ -573,6 +693,9 @@ export async function registerUser(name: string, email: string, password: string
     const contentType = res.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       const data = await res.json();
+      if (data && (data.token || data.access)) {
+        setAuthTokens(data.token || data.access, data.refresh || data.refreshToken);
+      }
       return data;
     } else {
       const text = await res.text();
@@ -587,17 +710,11 @@ export async function registerUser(name: string, email: string, password: string
 // ======================== PAYMENTS ========================
 
 export async function createRazorpayOrder(amount: number) {
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`${API_BASE_URL}/payment/create-order`, {
+  const res = await authenticatedFetch(`${API_BASE_URL}/payment/create-order`, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({ amount })
   });
 
@@ -609,17 +726,11 @@ export async function createRazorpayOrder(amount: number) {
 }
 
 export async function verifyRazorpayPayment(paymentData: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature?: string }) {
-  const token = getAuthToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`${API_BASE_URL}/payment/verify`, {
+  const res = await authenticatedFetch(`${API_BASE_URL}/payment/verify`, {
     method: 'POST',
-    headers,
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify(paymentData)
   });
 
@@ -629,20 +740,18 @@ export async function verifyRazorpayPayment(paymentData: { razorpay_order_id: st
 
   return res.json();
 }
+
 // ======================== SELLER / PRODUCTS ========================
 
 export async function uploadImage(fileBlob: Blob): Promise<string> {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   if (!token) throw new Error('Not authenticated');
 
   const formData = new FormData();
   formData.append('images', fileBlob, 'product-image.webp');
 
-  const res = await fetch(`${API_BASE_URL}/products/upload`, {
+  const res = await authenticatedFetch(`${API_BASE_URL}/products/upload`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
     body: formData
   });
 
@@ -659,14 +768,13 @@ export async function uploadImage(fileBlob: Blob): Promise<string> {
 }
 
 export async function createProduct(productData: any) {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   if (!token) throw new Error('Not authenticated');
 
-  const res = await fetch(`${API_BASE_URL}/products`, {
+  const res = await authenticatedFetch(`${API_BASE_URL}/products`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(productData)
   });
@@ -682,7 +790,7 @@ export async function createProduct(productData: any) {
 // ======================== USER ADDRESSES / LOCATIONS ========================
 
 export async function getSavedAddresses(): Promise<any[]> {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   let localAddrs: any[] = [];
   if (typeof window !== 'undefined') {
     try {
@@ -694,8 +802,7 @@ export async function getSavedAddresses(): Promise<any[]> {
   if (!token) return localAddrs;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/addresses`, {
-      headers: { 'Authorization': `Bearer ${token}` },
+    const res = await authenticatedFetch(`${API_BASE_URL}/addresses`, {
       cache: 'no-store'
     });
 
@@ -728,16 +835,15 @@ export async function createSavedAddress(addressData: {
   pincode: string;
   isDefault?: boolean;
 }): Promise<any[]> {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
 
   let updatedList: any[] = [];
   if (token) {
     try {
-      const res = await fetch(`${API_BASE_URL}/addresses`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/addresses`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(addressData)
       });
@@ -786,16 +892,15 @@ export async function updateSavedAddress(id: string, addressData: Partial<{
   pincode: string;
   isDefault: boolean;
 }>): Promise<any[]> {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   let updatedList: any[] = [];
 
   if (token) {
     try {
-      const res = await fetch(`${API_BASE_URL}/addresses/${id}`, {
+      const res = await authenticatedFetch(`${API_BASE_URL}/addresses/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(addressData)
       });
@@ -827,14 +932,13 @@ export async function updateSavedAddress(id: string, addressData: Partial<{
 }
 
 export async function deleteSavedAddress(id: string): Promise<any[]> {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
   let updatedList: any[] = [];
 
   if (token) {
     try {
-      const res = await fetch(`${API_BASE_URL}/addresses/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await authenticatedFetch(`${API_BASE_URL}/addresses/${id}`, {
+        method: 'DELETE'
       });
 
       const contentType = res.headers.get('content-type') || '';
@@ -860,3 +964,4 @@ export async function deleteSavedAddress(id: string): Promise<any[]> {
 
   return updatedList;
 }
+
